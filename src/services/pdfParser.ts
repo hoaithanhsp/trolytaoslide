@@ -1,8 +1,8 @@
 // PDF Parser service sử dụng pdf.js
 import * as pdfjsLib from 'pdfjs-dist';
 
-// Cấu hình worker cho pdf.js - sử dụng version 4.0.379 phù hợp với package
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@4.0.379/build/pdf.worker.min.mjs`;
+// Cấu hình worker cho pdf.js - sử dụng version 4.10.38 phù hợp với package
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs`;
 
 export interface ParsedPDF {
     success: boolean;
