@@ -28,7 +28,7 @@ export function CodeEditor({ content, onChange }: CodeEditorProps) {
         EditorView.theme({
           '&': {
             height: '100%',
-            backgroundColor: '#0f172a',
+            backgroundColor: '#ffffff',
           },
           '.cm-scroller': {
             fontFamily: "'Fira Code', 'JetBrains Mono', Consolas, monospace",
@@ -37,26 +37,27 @@ export function CodeEditor({ content, onChange }: CodeEditorProps) {
           },
           '.cm-content': {
             padding: '16px',
-            caretColor: '#818cf8',
+            caretColor: '#0d9488',
+            color: '#1e293b',
           },
           '.cm-gutters': {
-            backgroundColor: '#0f172a',
+            backgroundColor: '#f8fafc',
             color: '#64748b',
-            borderRight: '1px solid #1e293b',
+            borderRight: '1px solid #e2e8f0',
           },
           '.cm-activeLineGutter': {
-            backgroundColor: '#1e293b',
+            backgroundColor: '#e2e8f0',
           },
           '.cm-activeLine': {
-            backgroundColor: 'rgba(139, 92, 246, 0.1)',
+            backgroundColor: 'rgba(20, 184, 166, 0.08)',
           },
           '.cm-selectionBackground': {
-            backgroundColor: 'rgba(139, 92, 246, 0.3) !important',
+            backgroundColor: 'rgba(20, 184, 166, 0.2) !important',
           },
           '.cm-cursor': {
-            borderLeftColor: '#818cf8',
+            borderLeftColor: '#0d9488',
           },
-        }, { dark: true }),
+        }, { dark: false }),
       ],
     });
 
@@ -93,7 +94,7 @@ export function CodeEditor({ content, onChange }: CodeEditorProps) {
       ref={editorRef}
       className="flex-1 overflow-hidden"
       style={{
-        backgroundColor: '#0f172a',
+        backgroundColor: '#ffffff',
       }}
     />
   );
