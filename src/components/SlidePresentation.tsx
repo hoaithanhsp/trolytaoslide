@@ -477,11 +477,11 @@ ${editorContent}
         {/* CTA Button */}
         <button
           onClick={() => setIsAIInputOpen(true)}
-          className="group relative inline-flex items-center justify-center gap-3 px-12 py-5 bg-gradient-to-r from-teal-500 via-teal-400 to-cyan-400 text-teal-950 font-bold text-xl rounded-2xl shadow-2xl glow-teal hover:shadow-teal-400/50 transition-all duration-300 hover:scale-105 mb-14"
+          className="group relative inline-flex items-center justify-center gap-3 px-14 py-6 bg-gradient-to-r from-teal-500 via-teal-400 to-cyan-400 text-teal-950 font-extrabold text-2xl rounded-2xl btn-3d glow-teal transition-all duration-200 mb-14"
         >
-          <Sparkles className="w-7 h-7 group-hover:animate-spin" />
-          <span>Bắt Đầu Tạo Slide Ngay</span>
-          <Zap className="w-6 h-6" />
+          <Sparkles className="w-8 h-8 group-hover:animate-spin" />
+          <span className="tracking-wide">Bắt Đầu Tạo Slide Ngay</span>
+          <Zap className="w-7 h-7" />
         </button>
 
         {/* How it works - Steps */}
@@ -551,25 +551,25 @@ ${editorContent}
   );
 
   const StepCard = ({ step, title, description, icon }: { step: number; title: string; description: string; icon: string }) => (
-    <div className="glass rounded-xl p-5 text-center hover:bg-white/10 transition-all duration-300 group">
-      <div className="flex items-center justify-center gap-3 mb-3">
-        <span className="text-3xl">{icon}</span>
-        <span className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
+    <div className="card-3d rounded-xl p-6 text-center transition-all duration-200 group cursor-default">
+      <div className="flex items-center justify-center gap-3 mb-4">
+        <span className="text-4xl">{icon}</span>
+        <span className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg icon-btn-3d">
           {step}
         </span>
       </div>
-      <h4 className="text-white font-semibold mb-1">{title}</h4>
-      <p className="text-slate-400 text-xs">{description}</p>
+      <h4 className="text-white font-bold text-lg mb-2 text-shadow">{title}</h4>
+      <p className="text-teal-100 text-sm">{description}</p>
     </div>
   );
 
   const FeatureCard = ({ icon, title, description, color }: { icon: React.ReactNode; title: string; description: string; color: string }) => (
-    <div className="glass rounded-xl p-4 text-center hover:bg-white/10 transition-all duration-300 group cursor-default">
-      <div className={`inline-flex items-center justify-center p-3 bg-gradient-to-br ${color} rounded-xl text-white mb-3 group-hover:scale-110 transition-transform shadow-lg`}>
+    <div className="card-3d rounded-xl p-5 text-center transition-all duration-200 group cursor-default">
+      <div className={`inline-flex items-center justify-center p-4 bg-gradient-to-br ${color} rounded-xl text-white mb-4 group-hover:scale-110 transition-transform icon-btn-3d`}>
         {icon}
       </div>
-      <h3 className="text-sm font-semibold text-white mb-1">{title}</h3>
-      <p className="text-slate-400 text-xs">{description}</p>
+      <h3 className="text-base font-bold text-white mb-1 text-shadow">{title}</h3>
+      <p className="text-teal-100 text-sm">{description}</p>
     </div>
   );
 
