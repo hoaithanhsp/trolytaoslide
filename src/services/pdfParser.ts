@@ -1,8 +1,8 @@
 // PDF Parser service sử dụng pdf.js
 import * as pdfjsLib from 'pdfjs-dist';
 
-// Cấu hình worker cho pdf.js
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+// Cấu hình worker cho pdf.js - sử dụng version 4.0.379 phù hợp với package
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@4.0.379/build/pdf.worker.min.mjs`;
 
 export interface ParsedPDF {
     success: boolean;
@@ -60,6 +60,7 @@ export async function parsePDF(
             pageCount: totalPages,
         };
     } catch (error) {
+        console.error('PDF parse error:', error);
         return {
             success: false,
             error: error instanceof Error ? error.message : 'Không thể đọc file PDF',
