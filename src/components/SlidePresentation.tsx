@@ -236,51 +236,16 @@ export function SlidePresentation() {
         }
         .slide.active { display: flex; }
 
-        /* Animation keyframes */
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(30px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        @keyframes fadeInLeft {
-            from { opacity: 0; transform: translateX(-30px); }
-            to { opacity: 1; transform: translateX(0); }
-        }
-
-        @keyframes highlightGlow {
-            0%, 100% { box-shadow: 0 0 0 rgba(37, 99, 235, 0); }
-            50% { box-shadow: 0 0 20px rgba(37, 99, 235, 0.3); }
-        }
-
-        /* Staggered animations for slide elements */
-        .slide.active > * {
+        /* Step-by-step reveal - ẩn các element chưa được reveal */
+        .slide.active > .step-item {
             opacity: 0;
-            animation: fadeInUp 0.6s ease forwards;
+            transform: translateY(20px);
+            transition: all 0.4s ease;
         }
-
-        .slide.active > h1, .slide.active > h2 {
-            animation: fadeInLeft 0.7s ease forwards;
+        .slide.active > .step-item.revealed {
+            opacity: 1;
+            transform: translateY(0);
         }
-
-        .slide.active > *:nth-child(1) { animation-delay: 0.1s; }
-        .slide.active > *:nth-child(2) { animation-delay: 0.25s; }
-        .slide.active > *:nth-child(3) { animation-delay: 0.4s; }
-        .slide.active > *:nth-child(4) { animation-delay: 0.55s; }
-        .slide.active > *:nth-child(5) { animation-delay: 0.7s; }
-        .slide.active > *:nth-child(6) { animation-delay: 0.85s; }
-
-        /* List item animations */
-        .slide.active ul li, .slide.active ol li {
-            opacity: 0;
-            animation: fadeInUp 0.5s ease forwards;
-        }
-
-        .slide.active ul li:nth-child(1), .slide.active ol li:nth-child(1) { animation-delay: 0.3s; }
-        .slide.active ul li:nth-child(2), .slide.active ol li:nth-child(2) { animation-delay: 0.45s; }
-        .slide.active ul li:nth-child(3), .slide.active ol li:nth-child(3) { animation-delay: 0.6s; }
-        .slide.active ul li:nth-child(4), .slide.active ol li:nth-child(4) { animation-delay: 0.75s; }
-        .slide.active ul li:nth-child(5), .slide.active ol li:nth-child(5) { animation-delay: 0.9s; }
-        .slide.active ul li:nth-child(6), .slide.active ol li:nth-child(6) { animation-delay: 1.05s; }
 
         /* Typography */
         .slide h1 { 
@@ -315,7 +280,7 @@ export function SlidePresentation() {
             margin-top: 25px; background: rgba(255,255,255,0.95);
             padding: 12px 28px; border-radius: 50px;
             box-shadow: 0 8px 30px rgba(0,0,0,0.15);
-            display: flex; gap: 18px; align-items: center;
+            display: flex; gap: 12px; align-items: center;
             backdrop-filter: blur(10px);
         }
         .btn {
@@ -327,7 +292,31 @@ export function SlidePresentation() {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
             color: white; transform: scale(1.1);
         }
+        
+        /* Nút Next Step - nổi bật hơn */
+        .btn-step {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            font-size: 0.9rem;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            box-shadow: 0 4px 0 #047857, 0 6px 15px rgba(0,0,0,0.2);
+            transition: all 0.15s ease;
+        }
+        .btn-step:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 0 #047857, 0 10px 20px rgba(0,0,0,0.25);
+            background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+        }
+        .btn-step:active {
+            transform: translateY(1px);
+            box-shadow: 0 2px 0 #047857, 0 3px 8px rgba(0,0,0,0.15);
+        }
+        
         #slide-counter { font-weight: 700; font-size: 1.1rem; min-width: 70px; text-align: center; color: var(--secondary); }
+        #step-counter { font-size: 0.8rem; color: #10b981; font-weight: 500; }
+        .divider { color: #ccc; margin: 0 5px; }
 
         @media (max-width: 768px) {
             body { padding: 10px; }
@@ -341,14 +330,19 @@ export function SlidePresentation() {
 <body>
     <div id="presentation-area">
         <div class="slide-container" id="slide-wrapper">
-${editorContent}
+\${editorContent}
         </div>
 
         <div class="controls">
             <button class="btn" onclick="prevSlide()" title="Slide trước"><i class="fas fa-chevron-left"></i></button>
-            <span id="slide-counter">1 / ${slides.length}</span>
+            <span id="slide-counter">1 / \${slides.length}</span>
             <button class="btn" onclick="nextSlide()" title="Slide sau"><i class="fas fa-chevron-right"></i></button>
-            <span style="color:#ccc; margin: 0 5px;">|</span>
+            <span class="divider">|</span>
+            <button class="btn btn-step" onclick="nextStep()" title="Hiện dòng tiếp theo (Space)">
+                <i class="fas fa-plus"></i> Tiếp
+            </button>
+            <span id="step-counter"></span>
+            <span class="divider">|</span>
             <button class="btn" onclick="toggleFullscreen()" title="Toàn màn hình"><i class="fas fa-expand"></i></button>
         </div>
     </div>
@@ -357,14 +351,76 @@ ${editorContent}
         // Đợi DOM loaded hoàn toàn
         document.addEventListener('DOMContentLoaded', function() {
             var currentSlide = 0;
+            var currentStep = 0;
             var slides = document.querySelectorAll('.slide');
             var slideCounter = document.getElementById('slide-counter');
+            var stepCounter = document.getElementById('step-counter');
             
             console.log('Slides found:', slides.length);
             
             if (slides.length === 0) {
                 console.error('No slides found with class .slide');
                 return;
+            }
+
+            // Thêm class step-item cho các phần tử con trong slide
+            function initStepItems(slide) {
+                var children = slide.children;
+                for (var i = 0; i < children.length; i++) {
+                    children[i].classList.add('step-item');
+                    children[i].classList.remove('revealed');
+                }
+            }
+
+            // Đếm số step trong slide hiện tại
+            function getStepCount() {
+                var activeSlide = slides[currentSlide];
+                return activeSlide ? activeSlide.querySelectorAll('.step-item').length : 0;
+            }
+
+            // Cập nhật step counter
+            function updateStepCounter() {
+                var total = getStepCount();
+                if (stepCounter && total > 0) {
+                    stepCounter.innerText = currentStep + '/' + total;
+                } else if (stepCounter) {
+                    stepCounter.innerText = '';
+                }
+            }
+
+            // Hiện step tiếp theo
+            window.nextStep = function() {
+                var activeSlide = slides[currentSlide];
+                if (!activeSlide) return;
+                
+                var steps = activeSlide.querySelectorAll('.step-item');
+                if (currentStep < steps.length) {
+                    steps[currentStep].classList.add('revealed');
+                    currentStep++;
+                    updateStepCounter();
+                    
+                    // Re-render MathJax cho step vừa reveal
+                    if (window.MathJax && window.MathJax.typesetPromise) {
+                        window.MathJax.typesetPromise([steps[currentStep - 1]]).catch(function(err) {
+                            console.log('MathJax error:', err);
+                        });
+                    }
+                } else {
+                    // Đã hết step, chuyển slide
+                    window.nextSlide();
+                }
+            };
+            
+            // Hiện tất cả steps
+            function revealAllSteps() {
+                var activeSlide = slides[currentSlide];
+                if (!activeSlide) return;
+                var steps = activeSlide.querySelectorAll('.step-item');
+                for (var i = 0; i < steps.length; i++) {
+                    steps[i].classList.add('revealed');
+                }
+                currentStep = steps.length;
+                updateStepCounter();
             }
 
             function showSlide(index) {
@@ -378,12 +434,18 @@ ${editorContent}
                 if (index < 0) index = slides.length - 1;
                 
                 currentSlide = index;
+                currentStep = 0;
+                
+                // Init step items
+                initStepItems(slides[currentSlide]);
+                
                 slides[currentSlide].classList.add('active');
                 
                 // Update counter
                 if (slideCounter) {
                     slideCounter.innerText = (currentSlide + 1) + ' / ' + slides.length;
                 }
+                updateStepCounter();
                 
                 // Re-render MathJax for current slide
                 if (window.MathJax && window.MathJax.typesetPromise) {
@@ -406,13 +468,24 @@ ${editorContent}
 
             // Keyboard navigation
             document.addEventListener('keydown', function(e) {
-                if (e.key === 'ArrowRight' || e.key === ' ') { 
+                if (e.key === ' ' || e.key === 'Enter') { 
                     e.preventDefault(); 
-                    window.nextSlide(); 
+                    window.nextStep(); // Space/Enter = next step
+                }
+                if (e.key === 'ArrowRight') { 
+                    e.preventDefault(); 
+                    window.nextSlide(); // Arrow Right = next slide
                 }
                 if (e.key === 'ArrowLeft') { 
                     e.preventDefault(); 
                     window.prevSlide(); 
+                }
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    window.nextStep(); // Arrow Down = next step
+                }
+                if (e.key === 'a' || e.key === 'A') {
+                    revealAllSteps(); // A = reveal all
                 }
                 if (e.key === 'f' || e.key === 'F') {
                     window.toggleFullscreen();
@@ -432,6 +505,7 @@ ${editorContent}
     </script>
 </body>
 </html>`;
+
 
     const blob = new Blob([htmlTemplate], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
@@ -458,13 +532,13 @@ ${editorContent}
 
         {/* Main Greeting */}
         <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 leading-tight text-shadow">
-          <span className="text-white">CHÀO MỪNG QUÝ</span>
-          <span className="bg-gradient-to-r from-amber-300 via-yellow-400 to-orange-400 bg-clip-text text-transparent">THẦY CÔ</span>
+          <span className="text-white">Chào mừng quý </span>
+          <span className="bg-gradient-to-r from-amber-300 via-yellow-400 to-orange-400 bg-clip-text text-transparent">Thầy Cô</span>
         </h1>
 
         <h2 className="text-2xl md:text-3xl font-semibold mb-8">
           <span className="bg-gradient-to-r from-teal-300 via-cyan-300 to-teal-400 bg-clip-text text-transparent">
-            ĐẾN VỚI TRỢ LÝ TẠO SLIDE THÔNG MINH
+            đến với Trợ Lý Tạo Slide Thông Minh
           </span>
         </h2>
 
