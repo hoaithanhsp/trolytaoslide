@@ -1,5 +1,4 @@
-import React from 'react';
-import { Settings, Presentation, Key, Sparkles } from 'lucide-react';
+import { Settings, Sparkles } from 'lucide-react';
 
 interface HeaderProps {
     onOpenSettings: () => void;
@@ -8,48 +7,36 @@ interface HeaderProps {
 
 export function Header({ onOpenSettings, hasApiKey }: HeaderProps) {
     return (
-        <header className="fixed top-0 left-0 right-0 z-40 glass border-b border-white/10">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex items-center justify-between h-16">
-                    {/* Logo */}
-                    <div className="flex items-center gap-3">
-                        <div className="relative">
-                            <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl blur-lg opacity-50"></div>
-                            <div className="relative p-2.5 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-xl shadow-lg">
-                                <Presentation className="w-5 h-5 text-white" />
-                            </div>
-                        </div>
-                        <div>
-                            <h1 className="text-lg font-bold bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent flex items-center gap-2">
-                                AI Slide Generator
-                                <Sparkles className="w-4 h-4 text-purple-400" />
-                            </h1>
-                            <p className="text-xs text-slate-400">Tạo slide thuyết trình với AI</p>
-                        </div>
-                    </div>
-
-                    {/* Settings Button */}
-                    <button
-                        onClick={onOpenSettings}
-                        className="flex items-center gap-3 px-4 py-2.5 glass hover:bg-white/10 rounded-xl transition-all duration-200 group border border-white/10 hover:border-purple-500/50"
-                    >
-                        <div className="flex items-center gap-2">
-                            {hasApiKey ? (
-                                <Settings className="w-5 h-5 text-slate-400 group-hover:text-purple-400 transition-colors group-hover:rotate-90 duration-300" />
-                            ) : (
-                                <Key className="w-5 h-5 text-slate-400 group-hover:text-purple-400 transition-colors" />
-                            )}
-                            <span className="text-sm font-medium text-slate-300 group-hover:text-white transition-colors">
-                                Settings
-                            </span>
-                        </div>
-                        {!hasApiKey && (
-                            <span className="text-xs font-medium text-red-400 animate-pulse px-2 py-1 bg-red-500/20 rounded-lg">
-                                Cần API key
-                            </span>
-                        )}
-                    </button>
+        <header className="fixed top-0 left-0 right-0 h-16 glass-dark z-40 flex items-center justify-between px-6 border-b border-teal-500/20">
+            {/* Logo */}
+            <div className="flex items-center gap-3">
+                <div className="p-2 bg-gradient-to-br from-teal-400 to-cyan-500 rounded-xl shadow-lg glow-teal">
+                    <Sparkles className="w-5 h-5 text-white" />
                 </div>
+                <div>
+                    <h1 className="text-lg font-bold text-white flex items-center gap-2">
+                        AI Slide Generator
+                        <span className="text-teal-300 text-xs animate-pulse">✨</span>
+                    </h1>
+                    <p className="text-xs text-teal-200/70">Tạo slide thuyết trình với AI</p>
+                </div>
+            </div>
+
+            {/* Settings Button */}
+            <div className="flex items-center gap-4">
+                {!hasApiKey && (
+                    <span className="text-xs font-medium text-amber-400 animate-pulse flex items-center gap-1">
+                        <span className="w-2 h-2 bg-amber-400 rounded-full"></span>
+                        Cần nhập API key
+                    </span>
+                )}
+                <button
+                    onClick={onOpenSettings}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-teal-500/20 hover:bg-teal-500/30 border border-teal-400/30 text-teal-100 font-medium transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-teal-500/20"
+                >
+                    <Settings className="w-4 h-4" />
+                    <span className="text-sm">Settings</span>
+                </button>
             </div>
         </header>
     );
