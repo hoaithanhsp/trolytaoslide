@@ -2,7 +2,6 @@ import React, { useEffect, useRef } from 'react';
 import { EditorView, basicSetup } from 'codemirror';
 import { EditorState } from '@codemirror/state';
 import { html } from '@codemirror/lang-html';
-import { X } from 'lucide-react';
 
 interface CodeEditorProps {
   content: string;
@@ -26,6 +25,38 @@ export function CodeEditor({ content, onChange }: CodeEditorProps) {
             onChange(update.state.doc.toString());
           }
         }),
+        EditorView.theme({
+          '&': {
+            height: '100%',
+            backgroundColor: '#0f172a',
+          },
+          '.cm-scroller': {
+            fontFamily: "'Fira Code', 'JetBrains Mono', Consolas, monospace",
+            fontSize: '13px',
+            lineHeight: '1.6',
+          },
+          '.cm-content': {
+            padding: '16px',
+            caretColor: '#818cf8',
+          },
+          '.cm-gutters': {
+            backgroundColor: '#0f172a',
+            color: '#64748b',
+            borderRight: '1px solid #1e293b',
+          },
+          '.cm-activeLineGutter': {
+            backgroundColor: '#1e293b',
+          },
+          '.cm-activeLine': {
+            backgroundColor: 'rgba(139, 92, 246, 0.1)',
+          },
+          '.cm-selectionBackground': {
+            backgroundColor: 'rgba(139, 92, 246, 0.3) !important',
+          },
+          '.cm-cursor': {
+            borderLeftColor: '#818cf8',
+          },
+        }, { dark: true }),
       ],
     });
 
@@ -41,34 +72,29 @@ export function CodeEditor({ content, onChange }: CodeEditorProps) {
     };
   }, []);
 
+  // Update editor content when external content changes (from slide editing)
+  useEffect(() => {
+    if (editorViewRef.current) {
+      const currentContent = editorViewRef.current.state.doc.toString();
+      if (currentContent !== content) {
+        editorViewRef.current.dispatch({
+          changes: {
+            from: 0,
+            to: currentContent.length,
+            insert: content,
+          },
+        });
+      }
+    }
+  }, [content]);
+
   return (
-    <div className="w-96 bg-slate-900 border-l border-slate-700 flex flex-col shadow-2xl">
-      <div className="bg-slate-800 px-4 py-3 border-b border-slate-700 flex items-center justify-between">
-        <div className="flex items-center gap-2 text-white">
-          <svg
-            className="w-4 h-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
-            />
-          </svg>
-          <span className="font-semibold text-sm">HTML Editor</span>
-        </div>
-      </div>
-      <div
-        ref={editorRef}
-        className="flex-1 overflow-hidden text-sm font-mono"
-        style={{
-          '--cm-content-padding': '12px',
-          '--cm-padding-left': '8px',
-        } as any}
-      />
-    </div>
+    <div
+      ref={editorRef}
+      className="flex-1 overflow-hidden"
+      style={{
+        backgroundColor: '#0f172a',
+      }}
+    />
   );
 }
