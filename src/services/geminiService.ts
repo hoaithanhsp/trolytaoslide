@@ -22,19 +22,58 @@ export interface GenerationProgress {
   currentModel?: ModelId;
 }
 
+export interface SlideOutline {
+  slideNumber: number;
+  title: string;
+  keyPoints: string[];
+}
+
 const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 
+// Prompt để tạo outline gợi ý
+const generateOutlinePrompt = (content: string, topic: string, slideCount: number): string => {
+  return `Bạn là chuyên gia thiết kế bài giảng. Hãy tạo outline cho ${slideCount} slide về chủ đề sau:
+
+CHỦ ĐỀ: ${topic}
+
+${content ? `NỘI DUNG THAM KHẢO:\n${content}` : ''}
+
+Trả về JSON array với format:
+[
+  {"slideNumber": 1, "title": "Tiêu đề slide", "keyPoints": ["Điểm 1", "Điểm 2", "Điểm 3"]},
+  ...
+]
+
+CHỈ TRẢ VỀ JSON ARRAY, KHÔNG CÓ MARKDOWN HAY GIẢI THÍCH.`;
+};
+
 // Prompt để tạo slide từ nội dung
-const generateSlidePrompt = (content: string, topic?: string): string => {
+const generateSlidePrompt = (
+  content: string,
+  topic?: string,
+  slideCount?: number,
+  outline?: SlideOutline[]
+): string => {
+  const slideCountInstruction = slideCount
+    ? `Tạo ĐÚNG ${slideCount} slide`
+    : 'Tạo 5-8 slide phù hợp với độ dài nội dung';
+
+  const outlineInstruction = outline && outline.length > 0
+    ? `\nDÀN Ý YÊU CẦU (tuân theo cấu trúc này):\n${outline.map(s =>
+      `Slide ${s.slideNumber}: ${s.title}\n  - ${s.keyPoints.join('\n  - ')}`
+    ).join('\n')}`
+    : '';
+
   return `Bạn là một chuyên gia thiết kế slide thuyết trình giáo dục. Hãy tạo slide HTML cho nội dung sau.
 
 ${topic ? `CHỦ ĐỀ: ${topic}` : ''}
 
 NỘI DUNG TÀI LIỆU:
 ${content}
+${outlineInstruction}
 
 YÊU CẦU:
-1. Tạo 5-8 slide HTML phù hợp với nội dung
+1. ${slideCountInstruction}
 2. Mỗi slide phải có class="slide" 
 3. Slide đầu tiên là trang tiêu đề với h1
 4. Các slide tiếp theo có h2 cho tiêu đề phụ
@@ -49,13 +88,10 @@ CHỈ TRẢ VỀ HTML THUẦN TÚY, KHÔNG CÓ MARKDOWN HAY GIẢI THÍCH. Bắt
 
 // Gọi Gemini API
 async function callGeminiAPI(
-  content: string,
+  prompt: string,
   apiKey: string,
-  modelId: ModelId,
-  topic?: string
+  modelId: ModelId
 ): Promise<{ success: boolean; data?: string; error?: string }> {
-  const prompt = generateSlidePrompt(content, topic);
-  
   try {
     const response = await fetch(
       `${GEMINI_API_BASE}/${modelId}:generateContent?key=${apiKey}`,
@@ -92,13 +128,7 @@ async function callGeminiAPI(
       throw new Error('Không nhận được nội dung từ API');
     }
 
-    // Clean up response - remove markdown code blocks if present
-    let cleanedHtml = generatedText
-      .replace(/```html\s*/gi, '')
-      .replace(/```\s*/g, '')
-      .trim();
-
-    return { success: true, data: cleanedHtml };
+    return { success: true, data: generatedText };
   } catch (error) {
     return {
       success: false,
@@ -107,13 +137,51 @@ async function callGeminiAPI(
   }
 }
 
+// Tạo outline gợi ý
+export async function generateOutline(
+  content: string,
+  topic: string,
+  slideCount: number,
+  apiKey: string,
+  selectedModel?: ModelId
+): Promise<{ success: boolean; outline?: SlideOutline[]; error?: string }> {
+  const modelsToTry = selectedModel
+    ? [selectedModel, ...AI_MODELS.filter(m => m.id !== selectedModel).map(m => m.id)]
+    : AI_MODELS.map(m => m.id);
+
+  const prompt = generateOutlinePrompt(content, topic, slideCount);
+
+  for (const modelId of modelsToTry) {
+    const result = await callGeminiAPI(prompt, apiKey, modelId);
+
+    if (result.success && result.data) {
+      try {
+        // Clean up response
+        let cleanedJson = result.data
+          .replace(/```json\s*/gi, '')
+          .replace(/```\s*/g, '')
+          .trim();
+
+        const outline = JSON.parse(cleanedJson) as SlideOutline[];
+        return { success: true, outline };
+      } catch {
+        continue; // Try next model if JSON parse fails
+      }
+    }
+  }
+
+  return { success: false, error: 'Không thể tạo outline' };
+}
+
 // Tạo slide với cơ chế fallback
 export async function generateSlides(
   content: string,
   apiKey: string,
   selectedModel?: ModelId,
   topic?: string,
-  onProgress?: (progress: GenerationProgress) => void
+  onProgress?: (progress: GenerationProgress) => void,
+  slideCount?: number,
+  outline?: SlideOutline[]
 ): Promise<GenerationResult> {
   // Xác định thứ tự model để thử
   const modelsToTry = selectedModel
@@ -121,6 +189,7 @@ export async function generateSlides(
     : AI_MODELS.map(m => m.id);
 
   const totalSteps = 3; // Analyze, Generate, Format
+  const prompt = generateSlidePrompt(content, topic, slideCount, outline);
 
   for (let modelIndex = 0; modelIndex < modelsToTry.length; modelIndex++) {
     const currentModel = modelsToTry[modelIndex];
@@ -139,13 +208,19 @@ export async function generateSlides(
       step: 2,
       totalSteps,
       status: 'processing',
-      message: `Đang tạo slide với ${currentModel}...`,
+      message: `Đang tạo ${slideCount ? slideCount + ' slide' : 'slide'} với ${currentModel}...`,
       currentModel,
     });
 
-    const result = await callGeminiAPI(content, apiKey, currentModel, topic);
+    const result = await callGeminiAPI(prompt, apiKey, currentModel);
 
     if (result.success && result.data) {
+      // Clean up response - remove markdown code blocks if present
+      let cleanedHtml = result.data
+        .replace(/```html\s*/gi, '')
+        .replace(/```\s*/g, '')
+        .trim();
+
       // Step 3: Formatting
       onProgress?.({
         step: 3,
@@ -157,7 +232,7 @@ export async function generateSlides(
 
       return {
         success: true,
-        slides: result.data,
+        slides: cleanedHtml,
         usedModel: currentModel,
       };
     }
