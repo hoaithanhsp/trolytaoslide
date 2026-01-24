@@ -134,7 +134,27 @@ export function SlidePresentation() {
     <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;900&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 
-    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <!-- MathJax Configuration -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\\\(', '\\\\)']],
+                displayMath: [['$$', '$$'], ['\\\\[', '\\\\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+            },
+            startup: {
+                pageReady: () => {
+                    return MathJax.startup.defaultPageReady().then(() => {
+                        console.log('MathJax loaded successfully');
+                    });
+                }
+            }
+        };
+    </script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 
     <style>
@@ -143,33 +163,35 @@ export function SlidePresentation() {
             --secondary: #1e40af;
             --accent: #f59e0b;
             --text: #1e293b;
-            --bg: #f8fafc;
+            --bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             font-family: 'Be Vietnam Pro', sans-serif;
             background: var(--bg);
-            height: 100vh;
-            overflow: hidden;
+            min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
+            padding: 20px;
         }
 
         #presentation-area {
             position: relative;
+            width: 100%;
+            max-width: 1200px;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
         }
 
         .slide-container {
-            width: 960px;
-            height: 540px;
+            width: 100%;
+            aspect-ratio: 16/9;
             background: white;
-            border-radius: 8px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.15);
+            border-radius: 16px;
+            box-shadow: 0 25px 80px rgba(0,0,0,0.3);
             position: relative;
             overflow: hidden;
         }
@@ -178,49 +200,113 @@ export function SlidePresentation() {
             display: none;
             width: 100%;
             height: 100%;
-            padding: 40px 60px;
+            padding: 50px 70px;
             flex-direction: column;
             justify-content: center;
-            animation: fadeIn 0.5s ease;
+            background: white;
         }
         .slide.active { display: flex; }
 
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        /* Animation keyframes */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
 
-        .slide h1 { font-size: 3.5rem; color: var(--primary); margin-bottom: 20px; }
-        .slide h2 { font-size: 2.5rem; color: var(--secondary); margin-bottom: 30px; border-bottom: 3px solid var(--accent); display: inline-block; padding-bottom: 10px; }
-        .slide ul { font-size: 1.5rem; line-height: 1.6; padding-left: 40px; color: var(--text); }
-        .slide li { margin-bottom: 15px; }
-        .slide p { font-size: 1.4rem; margin-bottom: 20px; line-height: 1.5; }
+        @keyframes fadeInLeft {
+            from { opacity: 0; transform: translateX(-30px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
 
-        .box {
-            background: #eff6ff;
+        @keyframes highlightGlow {
+            0%, 100% { box-shadow: 0 0 0 rgba(37, 99, 235, 0); }
+            50% { box-shadow: 0 0 20px rgba(37, 99, 235, 0.3); }
+        }
+
+        /* Staggered animations for slide elements */
+        .slide.active > * {
+            opacity: 0;
+            animation: fadeInUp 0.6s ease forwards;
+        }
+
+        .slide.active > h1, .slide.active > h2 {
+            animation: fadeInLeft 0.7s ease forwards;
+        }
+
+        .slide.active > *:nth-child(1) { animation-delay: 0.1s; }
+        .slide.active > *:nth-child(2) { animation-delay: 0.25s; }
+        .slide.active > *:nth-child(3) { animation-delay: 0.4s; }
+        .slide.active > *:nth-child(4) { animation-delay: 0.55s; }
+        .slide.active > *:nth-child(5) { animation-delay: 0.7s; }
+        .slide.active > *:nth-child(6) { animation-delay: 0.85s; }
+
+        /* List item animations */
+        .slide.active ul li, .slide.active ol li {
+            opacity: 0;
+            animation: fadeInUp 0.5s ease forwards;
+        }
+
+        .slide.active ul li:nth-child(1), .slide.active ol li:nth-child(1) { animation-delay: 0.3s; }
+        .slide.active ul li:nth-child(2), .slide.active ol li:nth-child(2) { animation-delay: 0.45s; }
+        .slide.active ul li:nth-child(3), .slide.active ol li:nth-child(3) { animation-delay: 0.6s; }
+        .slide.active ul li:nth-child(4), .slide.active ol li:nth-child(4) { animation-delay: 0.75s; }
+        .slide.active ul li:nth-child(5), .slide.active ol li:nth-child(5) { animation-delay: 0.9s; }
+        .slide.active ul li:nth-child(6), .slide.active ol li:nth-child(6) { animation-delay: 1.05s; }
+
+        /* Typography */
+        .slide h1 { 
+            font-size: 3.2rem; font-weight: 800; color: var(--primary); 
+            margin-bottom: 25px; line-height: 1.2;
+        }
+        .slide h2 { 
+            font-size: 2.4rem; font-weight: 700; color: var(--secondary); 
+            margin-bottom: 35px; border-bottom: 4px solid var(--accent); 
+            display: inline-block; padding-bottom: 12px; 
+        }
+        .slide ul, .slide ol { font-size: 1.4rem; line-height: 1.8; padding-left: 45px; color: var(--text); }
+        .slide li { margin-bottom: 18px; }
+        .slide li::marker { color: var(--primary); font-weight: bold; }
+        .slide p { font-size: 1.35rem; margin-bottom: 22px; line-height: 1.7; color: var(--text); }
+
+        /* Math formulas styling */
+        .MathJax { font-size: 1.1em !important; }
+        mjx-container { margin: 5px 0 !important; }
+
+        /* Box styling */
+        .box, [style*="border-left"] {
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
             border-left: 5px solid var(--primary);
-            padding: 20px;
-            margin: 20px 0;
-            border-radius: 0 8px 8px 0;
-            font-size: 1.3rem;
+            padding: 25px 30px; margin: 25px 0;
+            border-radius: 0 12px 12px 0; font-size: 1.25rem;
+            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.1);
         }
 
-        .slide-footer {
-            position: absolute; bottom: 20px; right: 30px;
-            font-size: 1rem; color: #94a3b8;
-        }
-
+        /* Controls */
         .controls {
-            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
-            background: rgba(255,255,255,0.9);
-            padding: 10px 20px; border-radius: 50px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            display: flex; gap: 15px; align-items: center;
-            backdrop-filter: blur(5px);
+            margin-top: 25px; background: rgba(255,255,255,0.95);
+            padding: 12px 28px; border-radius: 50px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+            display: flex; gap: 18px; align-items: center;
+            backdrop-filter: blur(10px);
         }
         .btn {
             border: none; background: transparent; cursor: pointer;
-            font-size: 1.2rem; color: var(--text); padding: 8px 12px;
-            border-radius: 50%; transition: 0.2s;
+            font-size: 1.3rem; color: var(--text); padding: 10px 14px;
+            border-radius: 50%; transition: all 0.3s ease;
         }
-        .btn:hover { background: #e2e8f0; color: var(--primary); }
+        .btn:hover { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            color: white; transform: scale(1.1);
+        }
+        #slide-counter { font-weight: 700; font-size: 1.1rem; min-width: 70px; text-align: center; color: var(--secondary); }
+
+        @media (max-width: 768px) {
+            body { padding: 10px; }
+            .slide { padding: 30px 40px; }
+            .slide h1 { font-size: 2.2rem; }
+            .slide h2 { font-size: 1.8rem; }
+            .slide ul, .slide ol, .slide p { font-size: 1.1rem; }
+        }
     </style>
 </head>
 <body>
@@ -231,8 +317,10 @@ ${editorContent}
 
         <div class="controls">
             <button class="btn" onclick="prevSlide()" title="Slide trước"><i class="fas fa-chevron-left"></i></button>
-            <span id="slide-counter" style="font-weight: bold; min-width: 60px; text-align: center;">1 / ${slides.length}</span>
+            <span id="slide-counter">1 / ${slides.length}</span>
             <button class="btn" onclick="nextSlide()" title="Slide sau"><i class="fas fa-chevron-right"></i></button>
+            <span style="color:#ccc; margin: 0 5px;">|</span>
+            <button class="btn" onclick="toggleFullscreen()" title="Toàn màn hình"><i class="fas fa-expand"></i></button>
         </div>
     </div>
 
@@ -241,23 +329,42 @@ ${editorContent}
         let slides = document.querySelectorAll('.slide');
 
         function showSlide(index) {
-            slides.forEach(s => s.classList.remove('active'));
+            slides.forEach(s => {
+                s.classList.remove('active');
+                s.style.animation = 'none';
+                s.offsetHeight;
+                s.style.animation = null;
+            });
             if (index >= slides.length) index = 0;
             if (index < 0) index = slides.length - 1;
             currentSlide = index;
-            slides[currentSlide].classList.add('active');
+            const activeSlide = slides[currentSlide];
+            activeSlide.classList.add('active');
+            if (window.MathJax && window.MathJax.typesetPromise) {
+                window.MathJax.typesetPromise([activeSlide]).catch(err => console.log('MathJax error:', err));
+            }
             document.getElementById('slide-counter').innerText = (currentSlide + 1) + ' / ' + slides.length;
         }
 
         function nextSlide() { showSlide(currentSlide + 1); }
         function prevSlide() { showSlide(currentSlide - 1); }
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) { document.documentElement.requestFullscreen(); }
+            else { document.exitFullscreen(); }
+        }
 
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'ArrowRight') nextSlide();
-            if (e.key === 'ArrowLeft') prevSlide();
+            if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); nextSlide(); }
+            if (e.key === 'ArrowLeft') { e.preventDefault(); prevSlide(); }
+            if (e.key === 'f' || e.key === 'F') toggleFullscreen();
         });
 
-        showSlide(0);
+        window.addEventListener('load', () => {
+            showSlide(0);
+            if (window.MathJax && window.MathJax.typesetPromise) {
+                window.MathJax.typesetPromise().then(() => console.log('MathJax initial render complete'));
+            }
+        });
     </script>
 </body>
 </html>`;
@@ -347,7 +454,7 @@ ${editorContent}
       <div className="flex-1 flex overflow-hidden pt-16">
         <div
           ref={presentationAreaRef}
-          className={`flex-1 flex flex-col items-center justify-center transition-all duration-300`}
+          className="flex-1 flex flex-col items-center justify-center transition-all duration-300"
         >
           {slides.length === 0 ? (
             <WelcomeScreen />
