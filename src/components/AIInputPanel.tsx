@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
-import { Upload, FileText, Sparkles, X, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
+import { Upload, FileText, Sparkles, X, AlertCircle, CheckCircle, Loader2, ListOrdered, ChevronDown, ChevronUp, Edit3 } from 'lucide-react';
 import { parsePDF, isPDFFile, formatFileSize, ParseProgress } from '../services/pdfParser';
-import { generateSlides, GenerationProgress, ModelId } from '../services/geminiService';
+import { generateSlides, generateOutline, GenerationProgress, ModelId, SlideOutline } from '../services/geminiService';
 
 interface AIInputPanelProps {
     isOpen: boolean;
@@ -33,6 +33,12 @@ export function AIInputPanel({
     const [isProcessing, setIsProcessing] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    // Slide count options
+    const [slideCount, setSlideCount] = useState<number | ''>('');
+    const [showOutline, setShowOutline] = useState(false);
+    const [outline, setOutline] = useState<SlideOutline[]>([]);
+    const [isGeneratingOutline, setIsGeneratingOutline] = useState(false);
+
     if (!isOpen) return null;
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -61,6 +67,65 @@ export function AIInputPanel({
             setError(result.error || 'Không thể đọc file PDF');
             setSelectedFile(null);
         }
+    };
+
+    const handleSlideCountChange = (value: string) => {
+        if (value === '') {
+            setSlideCount('');
+            setOutline([]);
+            setShowOutline(false);
+        } else {
+            const num = parseInt(value);
+            if (num >= 1 && num <= 20) {
+                setSlideCount(num);
+                setOutline([]);
+                setShowOutline(false);
+            }
+        }
+    };
+
+    const handleGenerateOutline = async () => {
+        if (!apiKey || !topic || !slideCount) {
+            if (!topic) setError('Vui lòng nhập chủ đề trước');
+            return;
+        }
+
+        setIsGeneratingOutline(true);
+        setError('');
+
+        const inputContent = mode === 'pdf' ? pdfContent : content;
+        const result = await generateOutline(
+            inputContent,
+            topic,
+            slideCount as number,
+            apiKey,
+            selectedModel
+        );
+
+        setIsGeneratingOutline(false);
+
+        if (result.success && result.outline) {
+            setOutline(result.outline);
+            setShowOutline(true);
+        } else {
+            setError(result.error || 'Không thể tạo outline');
+        }
+    };
+
+    const handleOutlineChange = (slideIndex: number, field: 'title' | 'keyPoints', value: string | string[]) => {
+        const newOutline = [...outline];
+        if (field === 'title') {
+            newOutline[slideIndex].title = value as string;
+        } else {
+            newOutline[slideIndex].keyPoints = value as string[];
+        }
+        setOutline(newOutline);
+    };
+
+    const handleKeyPointChange = (slideIndex: number, pointIndex: number, value: string) => {
+        const newOutline = [...outline];
+        newOutline[slideIndex].keyPoints[pointIndex] = value;
+        setOutline(newOutline);
     };
 
     const handleGenerate = async () => {
@@ -93,7 +158,9 @@ export function AIInputPanel({
             inputTopic,
             (progress) => {
                 setGenerationProgress(progress);
-            }
+            },
+            slideCount ? slideCount as number : undefined,
+            outline.length > 0 ? outline : undefined
         );
 
         setIsProcessing(false);
@@ -111,11 +178,7 @@ export function AIInputPanel({
                 onSlidesGenerated(result.slides!);
                 onClose();
                 // Reset state
-                setTopic('');
-                setContent('');
-                setSelectedFile(null);
-                setPdfContent('');
-                setGenerationProgress(null);
+                resetPanel();
             }, 1000);
         } else {
             setGenerationProgress({
@@ -137,6 +200,9 @@ export function AIInputPanel({
         setError('');
         setGenerationProgress(null);
         setParseProgress(null);
+        setSlideCount('');
+        setOutline([]);
+        setShowOutline(false);
     };
 
     const getProgressPercentage = () => {
@@ -152,7 +218,7 @@ export function AIInputPanel({
     const getProgressColor = () => {
         if (generationProgress?.status === 'error') return 'bg-red-500';
         if (generationProgress?.status === 'completed') return 'bg-green-500';
-        return 'bg-blue-500';
+        return 'bg-purple-500';
     };
 
     return (
@@ -185,8 +251,8 @@ export function AIInputPanel({
                             onClick={() => setMode('topic')}
                             disabled={isProcessing}
                             className={`flex-1 py-2.5 px-4 rounded-lg font-medium text-sm transition-all ${mode === 'topic'
-                                    ? 'bg-white text-purple-600 shadow-md'
-                                    : 'text-slate-600 hover:text-slate-800'
+                                ? 'bg-white text-purple-600 shadow-md'
+                                : 'text-slate-600 hover:text-slate-800'
                                 }`}
                         >
                             <FileText className="w-4 h-4 inline-block mr-2" />
@@ -196,8 +262,8 @@ export function AIInputPanel({
                             onClick={() => setMode('pdf')}
                             disabled={isProcessing}
                             className={`flex-1 py-2.5 px-4 rounded-lg font-medium text-sm transition-all ${mode === 'pdf'
-                                    ? 'bg-white text-purple-600 shadow-md'
-                                    : 'text-slate-600 hover:text-slate-800'
+                                ? 'bg-white text-purple-600 shadow-md'
+                                : 'text-slate-600 hover:text-slate-800'
                                 }`}
                         >
                             <Upload className="w-4 h-4 inline-block mr-2" />
@@ -220,6 +286,98 @@ export function AIInputPanel({
                         />
                     </div>
 
+                    {/* Slide Count Option */}
+                    <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-4 border border-purple-100">
+                        <div className="flex items-center gap-3 mb-3">
+                            <ListOrdered className="w-5 h-5 text-purple-600" />
+                            <label className="text-sm font-semibold text-slate-700">
+                                Số lượng slide (tuỳ chọn)
+                            </label>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <input
+                                type="number"
+                                min="1"
+                                max="20"
+                                value={slideCount}
+                                onChange={(e) => handleSlideCountChange(e.target.value)}
+                                placeholder="Để trống = AI tự cân đối"
+                                disabled={isProcessing}
+                                className="flex-1 px-4 py-2.5 border-2 border-purple-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-200 focus:border-purple-400 transition-all disabled:bg-slate-100 text-sm"
+                            />
+                            {slideCount && topic && (
+                                <button
+                                    onClick={handleGenerateOutline}
+                                    disabled={isProcessing || isGeneratingOutline}
+                                    className="px-4 py-2.5 bg-purple-100 hover:bg-purple-200 text-purple-700 font-medium rounded-xl transition-all disabled:opacity-50 flex items-center gap-2 text-sm"
+                                >
+                                    {isGeneratingOutline ? (
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                    ) : (
+                                        <Edit3 className="w-4 h-4" />
+                                    )}
+                                    Tạo gợi ý
+                                </button>
+                            )}
+                        </div>
+                        <p className="text-xs text-slate-500 mt-2">
+                            💡 Nhập số từ 1-20. Để trống để AI tự quyết định số slide phù hợp.
+                        </p>
+                    </div>
+
+                    {/* Outline Editor */}
+                    {outline.length > 0 && (
+                        <div className="bg-white border-2 border-purple-200 rounded-xl overflow-hidden">
+                            <button
+                                onClick={() => setShowOutline(!showOutline)}
+                                className="w-full px-4 py-3 bg-purple-50 flex items-center justify-between hover:bg-purple-100 transition-colors"
+                            >
+                                <span className="font-semibold text-purple-700 flex items-center gap-2">
+                                    <ListOrdered className="w-5 h-5" />
+                                    Dàn ý {outline.length} slide (có thể chỉnh sửa)
+                                </span>
+                                {showOutline ? (
+                                    <ChevronUp className="w-5 h-5 text-purple-600" />
+                                ) : (
+                                    <ChevronDown className="w-5 h-5 text-purple-600" />
+                                )}
+                            </button>
+
+                            {showOutline && (
+                                <div className="p-4 space-y-4 max-h-60 overflow-y-auto">
+                                    {outline.map((slide, slideIndex) => (
+                                        <div key={slideIndex} className="bg-slate-50 rounded-lg p-3">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <span className="w-6 h-6 bg-purple-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                                                    {slide.slideNumber}
+                                                </span>
+                                                <input
+                                                    type="text"
+                                                    value={slide.title}
+                                                    onChange={(e) => handleOutlineChange(slideIndex, 'title', e.target.value)}
+                                                    className="flex-1 px-3 py-1.5 border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:border-purple-400"
+                                                    placeholder="Tiêu đề slide"
+                                                />
+                                            </div>
+                                            <div className="pl-8 space-y-1">
+                                                {slide.keyPoints.map((point, pointIndex) => (
+                                                    <input
+                                                        key={pointIndex}
+                                                        type="text"
+                                                        value={point}
+                                                        onChange={(e) => handleKeyPointChange(slideIndex, pointIndex, e.target.value)}
+                                                        className="w-full px-3 py-1.5 border border-slate-100 rounded-lg text-xs text-slate-600 focus:outline-none focus:border-purple-300"
+                                                        placeholder={`Điểm ${pointIndex + 1}`}
+                                                    />
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     {/* Content Area based on mode */}
                     {mode === 'topic' ? (
                         <div>
@@ -231,7 +389,7 @@ export function AIInputPanel({
                                 onChange={(e) => setContent(e.target.value)}
                                 placeholder="Nhập nội dung bài giảng, các điểm chính cần trình bày..."
                                 disabled={isProcessing}
-                                rows={6}
+                                rows={5}
                                 className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-200 focus:border-purple-400 transition-all resize-none disabled:bg-slate-100"
                             />
                         </div>
@@ -250,20 +408,20 @@ export function AIInputPanel({
                             />
                             <div
                                 onClick={() => !isProcessing && fileInputRef.current?.click()}
-                                className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${selectedFile
-                                        ? 'border-green-300 bg-green-50'
-                                        : 'border-slate-300 hover:border-purple-400 hover:bg-purple-50'
+                                className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all ${selectedFile
+                                    ? 'border-green-300 bg-green-50'
+                                    : 'border-slate-300 hover:border-purple-400 hover:bg-purple-50'
                                     } ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}
                             >
                                 {selectedFile ? (
                                     <div className="space-y-2">
-                                        <CheckCircle className="w-12 h-12 text-green-500 mx-auto" />
+                                        <CheckCircle className="w-10 h-10 text-green-500 mx-auto" />
                                         <p className="font-medium text-green-700">{selectedFile.name}</p>
                                         <p className="text-sm text-green-600">{formatFileSize(selectedFile.size)}</p>
                                     </div>
                                 ) : (
                                     <div className="space-y-2">
-                                        <Upload className="w-12 h-12 text-slate-400 mx-auto" />
+                                        <Upload className="w-10 h-10 text-slate-400 mx-auto" />
                                         <p className="text-slate-600">Click để chọn file PDF</p>
                                         <p className="text-sm text-slate-500">Hỗ trợ: SGK, tài liệu tham khảo</p>
                                     </div>
@@ -284,7 +442,7 @@ export function AIInputPanel({
                         <div className="space-y-2">
                             <div className="flex items-center justify-between text-sm">
                                 <span className={`font-medium ${generationProgress?.status === 'error' ? 'text-red-600' :
-                                        generationProgress?.status === 'completed' ? 'text-green-600' : 'text-slate-600'
+                                    generationProgress?.status === 'completed' ? 'text-green-600' : 'text-slate-600'
                                     }`}>
                                     {generationProgress?.message || (parseProgress ? `Đang đọc trang ${parseProgress.currentPage}/${parseProgress.totalPages}` : 'Đang xử lý...')}
                                 </span>
