@@ -680,19 +680,19 @@ ${editorContent}
 
         {/* Code Editor Panel - Side by side */}
         {isEditorOpen && slides.length > 0 && (
-          <div className="w-1/2 flex flex-col border-l border-slate-700 bg-slate-900">
+          <div className="w-1/2 flex flex-col border-l border-slate-200 bg-white">
             {/* Editor Header */}
-            <div className="bg-slate-800 px-4 py-3 border-b border-slate-700 flex items-center justify-between">
-              <div className="flex items-center gap-2 text-white">
-                <Code2 className="w-4 h-4 text-blue-400" />
+            <div className="bg-slate-100 px-4 py-3 border-b border-slate-200 flex items-center justify-between">
+              <div className="flex items-center gap-2 text-slate-800">
+                <Code2 className="w-4 h-4 text-teal-600" />
                 <span className="font-semibold text-sm">HTML Editor</span>
-                <span className="text-xs text-slate-400 ml-2">
+                <span className="text-xs text-slate-500 ml-2">
                   (Slide {currentSlide + 1})
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-xs text-green-400 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 bg-green-400 rounded-full"></span>
+                <span className="text-xs text-green-600 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
                   Đồng bộ 2 chiều
                 </span>
               </div>
