@@ -595,33 +595,11 @@ ${editorContent}
                 {slides.map((slide, index) => (
                   <div
                     key={slide.id}
-                    contentEditable={index === currentSlide && isEditorOpen}
-                    suppressContentEditableWarning
-                    onBlur={(e) => {
-                      if (index === currentSlide) {
-                        handleSlideContentEdit(e.currentTarget.innerHTML, index);
-                      }
-                    }}
-                    onInput={(e) => {
-                      if (index === currentSlide && isEditorOpen) {
-                        // Real-time sync to code editor
-                        handleSlideContentEdit(e.currentTarget.innerHTML, index);
-                      }
-                    }}
-                    className={`absolute inset-0 p-8 md:p-12 flex flex-col justify-center transition-all duration-500 
+                    className={`absolute inset-0 p-8 md:p-12 flex flex-col justify-center transition-all duration-500 overflow-y-auto
                       ${index === currentSlide ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}
-                      ${index === currentSlide && isEditorOpen ? 'outline-none ring-2 ring-purple-500/50 cursor-text' : ''}
                     `}
-                    style={{
-                      overflowY: 'auto',
-                      minHeight: '100%'
-                    }}
-                    dangerouslySetInnerHTML={index !== currentSlide || !isEditorOpen ? { __html: slide.content } : undefined}
-                  >
-                    {index === currentSlide && isEditorOpen && (
-                      <div dangerouslySetInnerHTML={{ __html: slide.content }} />
-                    )}
-                  </div>
+                    dangerouslySetInnerHTML={{ __html: slide.content }}
+                  />
                 ))}
 
                 {/* Slide counter badge */}
@@ -631,9 +609,9 @@ ${editorContent}
 
                 {/* Edit mode indicator */}
                 {isEditorOpen && (
-                  <div className="absolute top-3 left-4 text-xs text-purple-400 bg-purple-500/20 px-3 py-1 rounded-full flex items-center gap-1.5">
-                    <span className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></span>
-                    Đang chỉnh sửa trực tiếp
+                  <div className="absolute top-3 left-4 text-xs text-blue-400 bg-blue-500/20 px-3 py-1 rounded-full flex items-center gap-1.5">
+                    <span className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></span>
+                    Xem mã HTML song song
                   </div>
                 )}
               </div>
