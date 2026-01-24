@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Code2, Maximize2, Minimize2, Download, Sparkles } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Code2, Maximize2, Minimize2, Download, Sparkles, Presentation, Zap, FileText, Star } from 'lucide-react';
 import { CodeEditor } from './CodeEditor';
 import { Header } from './Header';
 import { ApiKeyModal } from './ApiKeyModal';
@@ -40,19 +40,25 @@ export function SlidePresentation() {
 
   useEffect(() => {
     const handleKeydown = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowRight') nextSlide();
-      if (e.key === 'ArrowLeft') prevSlide();
+      if (slides.length > 0) {
+        if (e.key === 'ArrowRight') nextSlide();
+        if (e.key === 'ArrowLeft') prevSlide();
+      }
     };
     window.addEventListener('keydown', handleKeydown);
     return () => window.removeEventListener('keydown', handleKeydown);
   }, [slides.length]);
 
   const nextSlide = () => {
-    setCurrentSlide((prev) => (prev + 1) % slides.length);
+    if (slides.length > 0) {
+      setCurrentSlide((prev) => (prev + 1) % slides.length);
+    }
   };
 
   const prevSlide = () => {
-    setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
+    if (slides.length > 0) {
+      setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
+    }
   };
 
   const handleEditorChange = (newContent: string) => {
@@ -264,8 +270,73 @@ ${editorContent}
     a.click();
   };
 
+  // Welcome Screen when no slides
+  const WelcomeScreen = () => (
+    <div className="w-full h-full flex items-center justify-center bg-grid">
+      <div className="text-center animate-slideUp max-w-3xl px-8">
+        {/* Floating Icon */}
+        <div className="relative inline-flex items-center justify-center mb-8">
+          <div className="absolute w-32 h-32 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full blur-3xl opacity-30 animate-pulse"></div>
+          <div className="relative p-6 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-3xl shadow-2xl animate-float">
+            <Presentation className="w-16 h-16 text-white" />
+          </div>
+        </div>
+
+        {/* Title */}
+        <h1 className="text-5xl md:text-6xl font-bold mb-4">
+          <span className="bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+            AI Slide Generator
+          </span>
+        </h1>
+
+        <p className="text-xl text-slate-400 mb-10 max-w-xl mx-auto leading-relaxed">
+          Tạo bài thuyết trình chuyên nghiệp chỉ trong vài giây với sức mạnh của Gemini AI
+        </p>
+
+        {/* CTA Button */}
+        <button
+          onClick={() => setIsAIInputOpen(true)}
+          className="group relative inline-flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white font-semibold text-lg rounded-2xl shadow-2xl shadow-indigo-500/30 hover:shadow-indigo-500/50 transition-all duration-300 hover:scale-105 animate-pulse-glow"
+        >
+          <Sparkles className="w-6 h-6 group-hover:animate-spin" />
+          <span>Bắt Đầu Tạo Slide</span>
+          <Zap className="w-5 h-5" />
+        </button>
+
+        {/* Features */}
+        <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-6">
+          <FeatureCard
+            icon={<FileText className="w-6 h-6" />}
+            title="Tải PDF"
+            description="Upload SGK, tài liệu và để AI xử lý"
+          />
+          <FeatureCard
+            icon={<Sparkles className="w-6 h-6" />}
+            title="AI Thông Minh"
+            description="Gemini AI tạo nội dung chất lượng"
+          />
+          <FeatureCard
+            icon={<Star className="w-6 h-6" />}
+            title="Thiết Kế Đẹp"
+            description="Slide chuyên nghiệp, sẵn sàng trình bày"
+          />
+        </div>
+      </div>
+    </div>
+  );
+
+  const FeatureCard = ({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) => (
+    <div className="glass rounded-2xl p-6 text-left hover:bg-white/10 transition-all duration-300 group cursor-default">
+      <div className="inline-flex items-center justify-center p-3 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl text-white mb-4 group-hover:scale-110 transition-transform">
+        {icon}
+      </div>
+      <h3 className="text-lg font-semibold text-white mb-2">{title}</h3>
+      <p className="text-slate-400 text-sm">{description}</p>
+    </div>
+  );
+
   return (
-    <div className="w-full h-screen bg-slate-100 flex flex-col overflow-hidden">
+    <div className="w-full h-screen flex flex-col overflow-hidden bg-grid">
       {/* Header */}
       <Header
         onOpenSettings={() => setIsApiKeyModalOpen(true)}
@@ -276,80 +347,85 @@ ${editorContent}
       <div className="flex-1 flex overflow-hidden pt-16">
         <div
           ref={presentationAreaRef}
-          className={`flex-1 flex flex-col items-center justify-center transition-all duration-300 ${isEditorOpen ? 'mr-0' : 'mr-0'
-            }`}
+          className={`flex-1 flex flex-col items-center justify-center transition-all duration-300`}
         >
-          <div className="relative w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
-            <div
-              ref={slideWrapperRef}
-              className="w-full max-w-6xl aspect-video bg-white rounded-lg shadow-2xl overflow-hidden"
-            >
-              {slides.map((slide, index) => (
-                <div
-                  key={slide.id}
-                  className={`absolute inset-0 p-10 md:p-16 flex flex-col justify-center transition-opacity duration-500 ${index === currentSlide ? 'opacity-100' : 'opacity-0 pointer-events-none'
-                    }`}
-                  dangerouslySetInnerHTML={{ __html: slide.content }}
-                />
-              ))}
-              <div className="absolute bottom-4 right-6 text-sm text-slate-500 font-semibold">
-                {currentSlide + 1} / {slides.length}
+          {slides.length === 0 ? (
+            <WelcomeScreen />
+          ) : (
+            <div className="relative w-full h-full flex items-center justify-center p-6">
+              {/* Slide Container with glassmorphism */}
+              <div
+                ref={slideWrapperRef}
+                className="w-full max-w-5xl aspect-video glass-light rounded-2xl shadow-2xl overflow-hidden relative animate-fadeIn"
+              >
+                {slides.map((slide, index) => (
+                  <div
+                    key={slide.id}
+                    className={`absolute inset-0 p-10 md:p-16 flex flex-col justify-center transition-all duration-500 ${index === currentSlide ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
+                      }`}
+                    dangerouslySetInnerHTML={{ __html: slide.content }}
+                  />
+                ))}
+                <div className="absolute bottom-4 right-6 text-sm text-slate-500 font-semibold bg-white/80 px-3 py-1 rounded-full">
+                  {currentSlide + 1} / {slides.length}
+                </div>
+              </div>
+
+              {/* Control Bar */}
+              <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 glass px-6 py-3 rounded-full shadow-2xl flex items-center gap-4 z-50">
+                <button
+                  onClick={prevSlide}
+                  className="p-2.5 hover:bg-white/20 rounded-full transition-all text-white"
+                  title="Slide trước"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <span className="font-bold text-white min-w-16 text-center">
+                  {currentSlide + 1} / {slides.length}
+                </span>
+                <button
+                  onClick={nextSlide}
+                  className="p-2.5 hover:bg-white/20 rounded-full transition-all text-white"
+                  title="Slide sau"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+                <div className="w-px h-6 bg-white/20 mx-1" />
+                <button
+                  onClick={() => setIsAIInputOpen(true)}
+                  className="p-2.5 hover:bg-purple-500/30 rounded-full transition-all text-purple-300"
+                  title="Tạo Slide với AI"
+                >
+                  <Sparkles className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => setIsEditorOpen(!isEditorOpen)}
+                  className="p-2.5 hover:bg-blue-500/30 rounded-full transition-all text-blue-300"
+                  title="Sửa Code"
+                >
+                  <Code2 className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={toggleFullscreen}
+                  className="p-2.5 hover:bg-white/20 rounded-full transition-all text-white"
+                  title="Toàn màn hình"
+                >
+                  {isFullscreen ? (
+                    <Minimize2 className="w-5 h-5" />
+                  ) : (
+                    <Maximize2 className="w-5 h-5" />
+                  )}
+                </button>
+                <button
+                  onClick={downloadHTML}
+                  className="p-2.5 hover:bg-green-500/30 rounded-full transition-all text-green-300"
+                  title="Tải về"
+                >
+                  <Download className="w-5 h-5" />
+                </button>
               </div>
             </div>
-
-            <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 bg-white/90 backdrop-blur-sm px-6 py-3 rounded-full shadow-lg flex items-center gap-4 z-50">
-              <button
-                onClick={prevSlide}
-                className="p-2 hover:bg-slate-200 rounded-full transition-colors"
-                title="Slide trước"
-              >
-                <ChevronLeft className="w-5 h-5 text-slate-700" />
-              </button>
-              <span className="font-bold text-slate-700 min-w-12 text-center">
-                {currentSlide + 1} / {slides.length}
-              </span>
-              <button
-                onClick={nextSlide}
-                className="p-2 hover:bg-slate-200 rounded-full transition-colors"
-                title="Slide sau"
-              >
-                <ChevronRight className="w-5 h-5 text-slate-700" />
-              </button>
-              <div className="w-px h-5 bg-slate-300 mx-2" />
-              <button
-                onClick={() => setIsAIInputOpen(true)}
-                className="p-2 hover:bg-purple-100 rounded-full transition-colors"
-                title="Tạo Slide với AI"
-              >
-                <Sparkles className="w-5 h-5 text-purple-600" />
-              </button>
-              <button
-                onClick={() => setIsEditorOpen(!isEditorOpen)}
-                className="p-2 hover:bg-blue-100 rounded-full transition-colors"
-                title="Sửa Code"
-              >
-                <Code2 className="w-5 h-5 text-blue-600" />
-              </button>
-              <button
-                onClick={toggleFullscreen}
-                className="p-2 hover:bg-slate-200 rounded-full transition-colors"
-                title="Toàn màn hình"
-              >
-                {isFullscreen ? (
-                  <Minimize2 className="w-5 h-5 text-slate-700" />
-                ) : (
-                  <Maximize2 className="w-5 h-5 text-slate-700" />
-                )}
-              </button>
-              <button
-                onClick={downloadHTML}
-                className="p-2 hover:bg-green-100 rounded-full transition-colors"
-                title="Tải về"
-              >
-                <Download className="w-5 h-5 text-green-600" />
-              </button>
-            </div>
-          </div>
+          )}
         </div>
 
         {isEditorOpen && (
