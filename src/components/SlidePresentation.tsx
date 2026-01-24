@@ -616,9 +616,9 @@ ${editorContent}
         </div>
 
         {/* Footer note */}
-        <p className="mt-10 text-sm text-slate-500">
-          💡 Tip: Nhấn phím <kbd className="px-2 py-1 bg-slate-700 rounded text-slate-300">←</kbd> <kbd className="px-2 py-1 bg-slate-700 rounded text-slate-300">→</kbd> để chuyển slide,
-          <kbd className="px-2 py-1 bg-slate-700 rounded text-slate-300 ml-1">F</kbd> để toàn màn hình
+        <p className="mt-10 text-base text-white font-semibold text-shadow">
+          💡 Tip: Nhấn phím <kbd className="px-3 py-1.5 bg-gradient-to-b from-slate-600 to-slate-800 rounded-lg text-white font-bold shadow-md border border-slate-500">←</kbd> <kbd className="px-3 py-1.5 bg-gradient-to-b from-slate-600 to-slate-800 rounded-lg text-white font-bold shadow-md border border-slate-500">→</kbd> để chuyển slide,
+          <kbd className="px-3 py-1.5 bg-gradient-to-b from-slate-600 to-slate-800 rounded-lg text-white font-bold shadow-md border border-slate-500 ml-2">F</kbd> để toàn màn hình
         </p>
       </div>
     </div>
