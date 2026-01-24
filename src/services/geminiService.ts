@@ -80,10 +80,10 @@ YÊU CẦU:
 5. Sử dụng ul/li cho danh sách
 6. Sử dụng div class="box" cho các định nghĩa/công thức quan trọng
 7. Với công thức toán, dùng cú pháp LaTeX trong $$ $$ hoặc $ $
-8. Style inline: màu chính #2563eb, màu phụ #1e40af, accent #f59e0b
-9. Font size: h1=3.5rem, h2=2.5rem, p/li=1.4rem
+8. KHÔNG TẠO THÊM BLOCK <style> - template đã có sẵn CSS
+9. KHÔNG sử dụng height: 100vh cho .slide - template sẽ xử lý display
 
-CHỈ TRẢ VỀ HTML THUẦN TÚY, KHÔNG CÓ MARKDOWN HAY GIẢI THÍCH. Bắt đầu ngay với <section class="slide">`;
+CHỈ TRẢ VỀ CÁC THẺ <section class="slide">...</section>, KHÔNG CÓ MARKDOWN, GIẢI THÍCH HAY BLOCK <style>. Bắt đầu ngay với <section class="slide">`;
 };
 
 // Gọi Gemini API
@@ -220,6 +220,12 @@ export async function generateSlides(
         .replace(/```html\s*/gi, '')
         .replace(/```\s*/g, '')
         .trim();
+
+      // Loại bỏ các block <style> thừa - template đã có sẵn CSS
+      cleanedHtml = cleanedHtml.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+
+      // Loại bỏ khoảng trắng thừa giữa các section
+      cleanedHtml = cleanedHtml.replace(/^\s+/gm, '').trim();
 
       // Step 3: Formatting
       onProgress?.({
