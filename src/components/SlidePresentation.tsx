@@ -325,44 +325,79 @@ ${editorContent}
     </div>
 
     <script>
-        let currentSlide = 0;
-        let slides = document.querySelectorAll('.slide');
-
-        function showSlide(index) {
-            slides.forEach(s => {
-                s.classList.remove('active');
-                s.style.animation = 'none';
-                s.offsetHeight;
-                s.style.animation = null;
-            });
-            if (index >= slides.length) index = 0;
-            if (index < 0) index = slides.length - 1;
-            currentSlide = index;
-            const activeSlide = slides[currentSlide];
-            activeSlide.classList.add('active');
-            if (window.MathJax && window.MathJax.typesetPromise) {
-                window.MathJax.typesetPromise([activeSlide]).catch(err => console.log('MathJax error:', err));
+        // Đợi DOM loaded hoàn toàn
+        document.addEventListener('DOMContentLoaded', function() {
+            var currentSlide = 0;
+            var slides = document.querySelectorAll('.slide');
+            var slideCounter = document.getElementById('slide-counter');
+            
+            console.log('Slides found:', slides.length);
+            
+            if (slides.length === 0) {
+                console.error('No slides found with class .slide');
+                return;
             }
-            document.getElementById('slide-counter').innerText = (currentSlide + 1) + ' / ' + slides.length;
-        }
 
-        function nextSlide() { showSlide(currentSlide + 1); }
-        function prevSlide() { showSlide(currentSlide - 1); }
-        function toggleFullscreen() {
-            if (!document.fullscreenElement) { document.documentElement.requestFullscreen(); }
-            else { document.exitFullscreen(); }
-        }
+            function showSlide(index) {
+                // Remove active from all slides
+                for (var i = 0; i < slides.length; i++) {
+                    slides[i].classList.remove('active');
+                }
+                
+                // Handle index wrap-around
+                if (index >= slides.length) index = 0;
+                if (index < 0) index = slides.length - 1;
+                
+                currentSlide = index;
+                slides[currentSlide].classList.add('active');
+                
+                // Update counter
+                if (slideCounter) {
+                    slideCounter.innerText = (currentSlide + 1) + ' / ' + slides.length;
+                }
+                
+                // Re-render MathJax for current slide
+                if (window.MathJax && window.MathJax.typesetPromise) {
+                    window.MathJax.typesetPromise([slides[currentSlide]]).catch(function(err) {
+                        console.log('MathJax error:', err);
+                    });
+                }
+            }
 
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); nextSlide(); }
-            if (e.key === 'ArrowLeft') { e.preventDefault(); prevSlide(); }
-            if (e.key === 'f' || e.key === 'F') toggleFullscreen();
-        });
+            // Navigation functions (global scope)
+            window.nextSlide = function() { showSlide(currentSlide + 1); };
+            window.prevSlide = function() { showSlide(currentSlide - 1); };
+            window.toggleFullscreen = function() {
+                if (!document.fullscreenElement) { 
+                    document.documentElement.requestFullscreen(); 
+                } else { 
+                    document.exitFullscreen(); 
+                }
+            };
 
-        window.addEventListener('load', () => {
+            // Keyboard navigation
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'ArrowRight' || e.key === ' ') { 
+                    e.preventDefault(); 
+                    window.nextSlide(); 
+                }
+                if (e.key === 'ArrowLeft') { 
+                    e.preventDefault(); 
+                    window.prevSlide(); 
+                }
+                if (e.key === 'f' || e.key === 'F') {
+                    window.toggleFullscreen();
+                }
+            });
+
+            // Initialize first slide
             showSlide(0);
+            
+            // Initial MathJax render
             if (window.MathJax && window.MathJax.typesetPromise) {
-                window.MathJax.typesetPromise().then(() => console.log('MathJax initial render complete'));
+                window.MathJax.typesetPromise().then(function() {
+                    console.log('MathJax initial render complete');
+                });
             }
         });
     </script>
