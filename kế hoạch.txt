@@ -1,0 +1,145 @@
+Tích Hợp Gemini AI Tạo Slide Thuyết Trình Tự Động
+Mô tả
+Thêm tính năng cho phép người dùng tải file PDF (SGK, tài liệu tham khảo) hoặc nhập chủ đề/nội dung, sau đó Gemini AI sẽ phân tích và tự động tạo slide thuyết trình HTML.
+
+User Review Required
+IMPORTANT
+
+API Key: Người dùng cần có API key từ Google AI Studio để sử dụng. Đây là yêu cầu bắt buộc trước khi sử dụng app.
+
+WARNING
+
+Xử lý PDF trên client: Do đây là ứng dụng static deploy lên Vercel, việc xử lý PDF sẽ dùng pdf.js trên browser. Với file PDF lớn có thể ảnh hưởng hiệu suất.
+
+Proposed Changes
+1. Vercel Deployment Config
+[NEW] 
+vercel.json
+Cấu hình SPA routing cho Vercel
+Đảm bảo tất cả route đều trỏ về 
+index.html
+2. Gemini AI Service
+[NEW] 
+geminiService.ts
+Định nghĩa danh sách models với thứ tự fallback:
+gemini-3-flash-preview (mặc định)
+gemini-3-pro-preview
+gemini-2.5-flash
+Hàm generateSlides(content: string, apiKey: string):
+Nhận nội dung từ PDF hoặc chủ đề
+Gửi prompt tới Gemini API
+Trả về HTML slides
+Cơ chế retry tự động khi gặp lỗi API (429, 500, etc.)
+3. API Key Management
+[NEW] 
+useApiKey.ts
+Custom hook quản lý API key
+Lưu/đọc từ localStorage
+Validate key format
+[NEW] 
+ApiKeyModal.tsx
+Modal nhập API key (bắt buộc khi chưa có key)
+Hiển thị danh sách Model AI dạng Cards
+Link hướng dẫn lấy API key: https://tinyurl.com/hdsdpmTHT
+Link trực tiếp: https://aistudio.google.com/api-keys
+4. AI Input Panel
+[NEW] 
+AIInputPanel.tsx
+Panel cho phép:
+Tải file PDF (SGK, tài liệu)
+Nhập chủ đề và nội dung mong muốn
+Progress bar hiển thị tiến trình xử lý
+Xử lý trạng thái lỗi (hiển thị mã lỗi API)
+Trạng thái "Đã dừng do lỗi" khi thất bại
+[NEW] 
+pdfParser.ts
+Sử dụng pdfjs-dist để trích xuất text từ PDF
+Xử lý từng trang và ghép nội dung
+5. Header với Settings
+[NEW] 
+Header.tsx
+Header cố định hiển thị:
+Logo/Tên app
+Nút Settings (API Key) với text đỏ "Lấy API key để sử dụng app"
+6. Cập Nhật Components Hiện Tại
+[MODIFY] 
+SlidePresentation.tsx
+Import và sử dụng Header, AIInputPanel, ApiKeyModal
+Thêm state quản lý AI generation flow
+Cập nhật slides khi AI tạo xong
+[MODIFY] 
+App.tsx
+Wrap với context providers nếu cần
+7. Dependencies
+[MODIFY] 
+package.json
+Thêm pdfjs-dist để xử lý PDF
+Verification Plan
+Automated Tests
+Do dự án hiện tại không có test framework, việc kiểm thử sẽ thực hiện thủ công qua browser.
+
+Manual Verification
+Bước 1: Chạy dev server
+
+cd "c:\Users\admin\Downloads\APP MỚI\APP TẠO SLIDE THUYẾT TRÌNH"
+npm install
+npm run dev
+Bước 2: Kiểm tra API Key Modal
+
+Mở trình duyệt tại http://localhost:5173
+Xác nhận Modal yêu cầu nhập API key hiển thị ngay khi load
+Xác nhận có link đến https://aistudio.google.com/api-keys và https://tinyurl.com/hdsdpmTHT
+Xác nhận có 3 model cards hiển thị đúng thứ tự
+Bước 3: Kiểm tra Settings trên Header
+
+Sau khi nhập API key, đóng modal
+Xác nhận Header hiển thị nút "Settings (API Key)" với text đỏ
+Click vào nút, xác nhận modal mở lại để có thể đổi key
+Bước 4: Kiểm tra AI Input Panel
+
+Xác nhận có 2 tab/option: Tải PDF và Nhập chủ đề
+Thử tải 1 file PDF nhỏ và xác nhận nội dung được trích xuất
+Thử nhập chủ đề như "Bài 1: Phương trình bậc nhất" và nhấn tạo slide
+Bước 5: Kiểm tra Fallback khi lỗi API (cần user có key hợp lệ)
+
+Nhập API key hợp lệ
+Tạo slide với nội dung test
+Nếu model đầu tiên lỗi, xác nhận có chuyển sang model tiếp theo
+Nếu tất cả models lỗi, xác nhận hiển thị thông báo lỗi đỏ với mã lỗi
+Bước 6: Kiểm tra tạo slide thành công
+
+Sau khi AI xử lý xong, xác nhận slides được cập nhật
+Có thể điều hướng qua các slide mới
+Có thể download HTML với nội dung mới
+Bước 7: Build cho Production
+
+npm run build
+Xác nhận build thành công không có lỗi.
+
+Giao diện mẫu
+Modal Settings API Key
+┌─────────────────────────────────────────────────────────────┐
+│                    Thiết lập API Key                        │
+├─────────────────────────────────────────────────────────────┤
+│  Chọn Model AI:                                             │
+│  ┌────────────────┐ ┌────────────────┐ ┌────────────────┐   │
+│  │ gemini-3-      │ │ gemini-3-      │ │ gemini-2.5-    │   │
+│  │ flash-preview  │ │ pro-preview    │ │ flash          │   │
+│  │   ✓ Default    │ │                │ │                │   │
+│  └────────────────┘ └────────────────┘ └────────────────┘   │
+│                                                             │
+│  Nhập API Key:                                              │
+│  ┌─────────────────────────────────────────────────────────┐│
+│  │ AIzaSy...                                               ││
+│  └─────────────────────────────────────────────────────────┘│
+│                                                             │
+│  📌 Lấy API key tại: https://aistudio.google.com/api-keys   │
+│  📘 Xem hướng dẫn chi tiết: https://tinyurl.com/hdsdpmTHT   │
+│                                                             │
+│                              [Lưu API Key]                  │
+└─────────────────────────────────────────────────────────────┘
+Header
+┌────────────────────────────────────────────────────────────────────────┐
+│  🎯 AI Slide Generator          [⚙️ Settings (API Key)]               │
+│                                  Lấy API key để sử dụng app (đỏ)      │
+└────────────────────────────────────────────────────────────────────────┘
