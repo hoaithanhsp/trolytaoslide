@@ -330,12 +330,12 @@ export function SlidePresentation() {
 <body>
     <div id="presentation-area">
         <div class="slide-container" id="slide-wrapper">
-\${editorContent}
+${editorContent}
         </div>
 
         <div class="controls">
             <button class="btn" onclick="prevSlide()" title="Slide trước"><i class="fas fa-chevron-left"></i></button>
-            <span id="slide-counter">1 / \${slides.length}</span>
+            <span id="slide-counter">1 / ${slides.length}</span>
             <button class="btn" onclick="nextSlide()" title="Slide sau"><i class="fas fa-chevron-right"></i></button>
             <span class="divider">|</span>
             <button class="btn btn-step" onclick="nextStep()" title="Hiện dòng tiếp theo (Space)">
