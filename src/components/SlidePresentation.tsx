@@ -83,6 +83,35 @@ export function SlidePresentation() {
     }
   };
 
+  // Handle direct editing on slide preview - sync to code editor
+  const handleSlideContentEdit = (newContent: string, slideIndex: number) => {
+    // Update the specific slide's content
+    const updatedSlides = [...slides];
+    if (updatedSlides[slideIndex]) {
+      updatedSlides[slideIndex] = {
+        ...updatedSlides[slideIndex],
+        content: newContent,
+        title: (() => {
+          const tempDiv = document.createElement('div');
+          tempDiv.innerHTML = newContent;
+          return tempDiv.querySelector('h1, h2')?.textContent || updatedSlides[slideIndex].title;
+        })()
+      };
+      setSlides(updatedSlides);
+
+      // Rebuild full editor content from all slides
+      const fullContent = updatedSlides
+        .map(slide => `<section class="slide">${slide.content}</section>`)
+        .join('\n');
+      setEditorContent(fullContent);
+
+      // Re-render MathJax
+      if (window.MathJax && slideWrapperRef.current) {
+        window.MathJax.typesetPromise?.([slideWrapperRef.current]);
+      }
+    }
+  };
+
   const handleSlidesGenerated = (slidesHtml: string) => {
     // Update editor content
     setEditorContent(slidesHtml);
@@ -549,70 +578,104 @@ ${editorContent}
 
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden pt-16">
+        {/* Slide Preview Area */}
         <div
           ref={presentationAreaRef}
-          className="flex-1 flex flex-col items-center justify-center transition-all duration-300"
+          className={`flex-1 flex flex-col items-center justify-center transition-all duration-300 ${isEditorOpen ? 'w-1/2' : 'w-full'}`}
         >
           {slides.length === 0 ? (
             <WelcomeScreen />
           ) : (
-            <div className="relative w-full h-full flex items-center justify-center p-6">
-              {/* Slide Container with glassmorphism */}
+            <div className="relative w-full h-full flex items-center justify-center p-4">
+              {/* Slide Container - Editable */}
               <div
                 ref={slideWrapperRef}
-                className="w-full max-w-5xl aspect-video glass-light rounded-2xl shadow-2xl overflow-hidden relative animate-fadeIn"
+                className={`w-full ${isEditorOpen ? 'max-w-2xl' : 'max-w-5xl'} aspect-video glass-light rounded-2xl shadow-2xl overflow-hidden relative animate-fadeIn`}
               >
                 {slides.map((slide, index) => (
                   <div
                     key={slide.id}
-                    className={`absolute inset-0 p-10 md:p-16 flex flex-col justify-center transition-all duration-500 ${index === currentSlide ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
-                      }`}
-                    dangerouslySetInnerHTML={{ __html: slide.content }}
-                  />
+                    contentEditable={index === currentSlide && isEditorOpen}
+                    suppressContentEditableWarning
+                    onBlur={(e) => {
+                      if (index === currentSlide) {
+                        handleSlideContentEdit(e.currentTarget.innerHTML, index);
+                      }
+                    }}
+                    onInput={(e) => {
+                      if (index === currentSlide && isEditorOpen) {
+                        // Real-time sync to code editor
+                        handleSlideContentEdit(e.currentTarget.innerHTML, index);
+                      }
+                    }}
+                    className={`absolute inset-0 p-8 md:p-12 flex flex-col justify-center transition-all duration-500 
+                      ${index === currentSlide ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}
+                      ${index === currentSlide && isEditorOpen ? 'outline-none ring-2 ring-purple-500/50 cursor-text' : ''}
+                    `}
+                    style={{
+                      overflowY: 'auto',
+                      minHeight: '100%'
+                    }}
+                    dangerouslySetInnerHTML={index !== currentSlide || !isEditorOpen ? { __html: slide.content } : undefined}
+                  >
+                    {index === currentSlide && isEditorOpen && (
+                      <div dangerouslySetInnerHTML={{ __html: slide.content }} />
+                    )}
+                  </div>
                 ))}
-                <div className="absolute bottom-4 right-6 text-sm text-slate-500 font-semibold bg-white/80 px-3 py-1 rounded-full">
+
+                {/* Slide counter badge */}
+                <div className="absolute bottom-3 right-4 text-sm text-slate-500 font-semibold bg-white/90 px-3 py-1 rounded-full shadow">
                   {currentSlide + 1} / {slides.length}
                 </div>
+
+                {/* Edit mode indicator */}
+                {isEditorOpen && (
+                  <div className="absolute top-3 left-4 text-xs text-purple-400 bg-purple-500/20 px-3 py-1 rounded-full flex items-center gap-1.5">
+                    <span className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></span>
+                    Đang chỉnh sửa trực tiếp
+                  </div>
+                )}
               </div>
 
               {/* Control Bar */}
-              <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 glass px-6 py-3 rounded-full shadow-2xl flex items-center gap-4 z-50">
+              <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 glass px-5 py-2.5 rounded-full shadow-2xl flex items-center gap-3 z-50">
                 <button
                   onClick={prevSlide}
-                  className="p-2.5 hover:bg-white/20 rounded-full transition-all text-white"
-                  title="Slide trước"
+                  className="p-2 hover:bg-white/20 rounded-full transition-all text-white"
+                  title="Slide trước (←)"
                 >
                   <ChevronLeft className="w-5 h-5" />
                 </button>
-                <span className="font-bold text-white min-w-16 text-center">
+                <span className="font-bold text-white min-w-14 text-center text-sm">
                   {currentSlide + 1} / {slides.length}
                 </span>
                 <button
                   onClick={nextSlide}
-                  className="p-2.5 hover:bg-white/20 rounded-full transition-all text-white"
-                  title="Slide sau"
+                  className="p-2 hover:bg-white/20 rounded-full transition-all text-white"
+                  title="Slide sau (→)"
                 >
                   <ChevronRight className="w-5 h-5" />
                 </button>
-                <div className="w-px h-6 bg-white/20 mx-1" />
+                <div className="w-px h-5 bg-white/20" />
                 <button
                   onClick={() => setIsAIInputOpen(true)}
-                  className="p-2.5 hover:bg-purple-500/30 rounded-full transition-all text-purple-300"
+                  className="p-2 hover:bg-purple-500/30 rounded-full transition-all text-purple-300"
                   title="Tạo Slide với AI"
                 >
                   <Sparkles className="w-5 h-5" />
                 </button>
                 <button
                   onClick={() => setIsEditorOpen(!isEditorOpen)}
-                  className="p-2.5 hover:bg-blue-500/30 rounded-full transition-all text-blue-300"
-                  title="Sửa Code"
+                  className={`p-2 rounded-full transition-all ${isEditorOpen ? 'bg-blue-500/40 text-blue-200' : 'hover:bg-blue-500/30 text-blue-300'}`}
+                  title={isEditorOpen ? "Đóng Editor" : "Mở Editor (song song)"}
                 >
                   <Code2 className="w-5 h-5" />
                 </button>
                 <button
                   onClick={toggleFullscreen}
-                  className="p-2.5 hover:bg-white/20 rounded-full transition-all text-white"
-                  title="Toàn màn hình"
+                  className="p-2 hover:bg-white/20 rounded-full transition-all text-white"
+                  title="Toàn màn hình (F)"
                 >
                   {isFullscreen ? (
                     <Minimize2 className="w-5 h-5" />
@@ -622,8 +685,8 @@ ${editorContent}
                 </button>
                 <button
                   onClick={downloadHTML}
-                  className="p-2.5 hover:bg-green-500/30 rounded-full transition-all text-green-300"
-                  title="Tải về"
+                  className="p-2 hover:bg-green-500/30 rounded-full transition-all text-green-300"
+                  title="Tải về HTML"
                 >
                   <Download className="w-5 h-5" />
                 </button>
@@ -632,8 +695,32 @@ ${editorContent}
           )}
         </div>
 
-        {isEditorOpen && (
-          <CodeEditor content={editorContent} onChange={handleEditorChange} />
+        {/* Code Editor Panel - Side by side */}
+        {isEditorOpen && slides.length > 0 && (
+          <div className="w-1/2 flex flex-col border-l border-slate-700 bg-slate-900">
+            {/* Editor Header */}
+            <div className="bg-slate-800 px-4 py-3 border-b border-slate-700 flex items-center justify-between">
+              <div className="flex items-center gap-2 text-white">
+                <Code2 className="w-4 h-4 text-blue-400" />
+                <span className="font-semibold text-sm">HTML Editor</span>
+                <span className="text-xs text-slate-400 ml-2">
+                  (Slide {currentSlide + 1})
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-green-400 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 bg-green-400 rounded-full"></span>
+                  Đồng bộ 2 chiều
+                </span>
+              </div>
+            </div>
+
+            {/* Editor Content */}
+            <CodeEditor
+              content={editorContent}
+              onChange={handleEditorChange}
+            />
+          </div>
         )}
       </div>
 
