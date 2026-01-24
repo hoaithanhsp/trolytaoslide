@@ -199,11 +199,70 @@ body {
 }
 
 .glass-light {
-  background: rgba(255, 255, 255, 0.95);
+  background: #ffffff;
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(20, 184, 166, 0.2);
   box-shadow: 0 8px 32px rgba(15, 118, 110, 0.2);
+}
+
+/* Slide Preview Styles - Nền trắng chữ đen */
+.glass-light h1,
+.glass-light h2 {
+  color: #0d9488 !important;
+  margin-bottom: 20px;
+}
+
+.glass-light h3,
+.glass-light h4,
+.glass-light h5,
+.glass-light h6 {
+  color: #115e59 !important;
+  margin-bottom: 16px;
+}
+
+.glass-light p,
+.glass-light li,
+.glass-light span,
+.glass-light div {
+  color: #1e293b !important;
+}
+
+.glass-light ul,
+.glass-light ol {
+  color: #1e293b !important;
+  padding-left: 24px;
+}
+
+.glass-light li {
+  margin-bottom: 8px;
+}
+
+.glass-light strong,
+.glass-light b {
+  color: #0f766e !important;
+  font-weight: 700;
+}
+
+.glass-light em,
+.glass-light i {
+  color: #115e59 !important;
+}
+
+/* Box styling trong preview */
+.glass-light .box,
+.glass-light [style*="border-left"] {
+  background: linear-gradient(135deg, #f0fdfa 0%, #ccfbf1 100%) !important;
+  border-left: 4px solid #14b8a6 !important;
+  padding: 16px 20px;
+  border-radius: 0 8px 8px 0;
+  color: #1e293b !important;
+}
+
+/* MathJax trong preview */
+.glass-light .MathJax,
+.glass-light mjx-container {
+  color: #1e293b !important;
 }
 
 /* Gradient text - Teal */
