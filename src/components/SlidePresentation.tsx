@@ -29,14 +29,14 @@ export function SlidePresentation() {
   const slideWrapperRef = useRef<HTMLDivElement>(null);
   const presentationAreaRef = useRef<HTMLDivElement>(null);
 
-  const { apiKey, selectedModel, hasValidKey, setApiKey, setSelectedModel } = useApiKey();
+  const { apiKey, selectedModel, hasValidKey, isLoaded, setApiKey, setSelectedModel } = useApiKey();
 
-  // Hiển thị modal API key nếu chưa có key
+  // Hiển thị modal API key nếu chưa có key (chỉ sau khi đã load từ localStorage)
   useEffect(() => {
-    if (!hasValidKey && !isApiKeyModalOpen) {
+    if (isLoaded && !hasValidKey && !isApiKeyModalOpen) {
       setIsApiKeyModalOpen(true);
     }
-  }, [hasValidKey]);
+  }, [isLoaded, hasValidKey]);
 
   useEffect(() => {
     const handleKeydown = (e: KeyboardEvent) => {
