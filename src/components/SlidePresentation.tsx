@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Code2, Maximize2, Minimize2, Download, Sparkles, Presentation, Zap, FileText, Star } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Code2, Maximize2, Minimize2, Download, Sparkles, Zap, FileText, Star } from 'lucide-react';
 import { CodeEditor } from './CodeEditor';
 import { Header } from './Header';
 import { ApiKeyModal } from './ApiKeyModal';
@@ -414,66 +414,128 @@ ${editorContent}
 
   // Welcome Screen when no slides
   const WelcomeScreen = () => (
-    <div className="w-full h-full flex items-center justify-center bg-grid">
-      <div className="text-center animate-slideUp max-w-3xl px-8">
-        {/* Floating Icon */}
-        <div className="relative inline-flex items-center justify-center mb-8">
-          <div className="absolute w-32 h-32 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full blur-3xl opacity-30 animate-pulse"></div>
-          <div className="relative p-6 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-3xl shadow-2xl animate-float">
-            <Presentation className="w-16 h-16 text-white" />
-          </div>
+    <div className="w-full h-full flex items-center justify-center overflow-y-auto py-8">
+      <div className="text-center animate-slideUp max-w-5xl px-6">
+        {/* Welcome Badge */}
+        <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-500/20 to-purple-500/20 rounded-full mb-6 border border-indigo-500/30">
+          <Sparkles className="w-4 h-4 text-indigo-400" />
+          <span className="text-sm font-medium text-indigo-300">Powered by Gemini AI</span>
         </div>
 
-        {/* Title */}
-        <h1 className="text-5xl md:text-6xl font-bold mb-4">
-          <span className="bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-            AI Slide Generator
-          </span>
+        {/* Main Greeting */}
+        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 leading-tight">
+          <span className="text-white">Chào mừng quý </span>
+          <span className="bg-gradient-to-r from-yellow-400 via-orange-400 to-pink-400 bg-clip-text text-transparent">Thầy Cô</span>
         </h1>
 
-        <p className="text-xl text-slate-400 mb-10 max-w-xl mx-auto leading-relaxed">
-          Tạo bài thuyết trình chuyên nghiệp chỉ trong vài giây với sức mạnh của Gemini AI
+        <h2 className="text-2xl md:text-3xl font-semibold mb-6">
+          <span className="bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+            đến với Trợ Lý Tạo Slide Thông Minh
+          </span>
+        </h2>
+
+        <p className="text-lg text-slate-400 mb-10 max-w-2xl mx-auto leading-relaxed">
+          Ứng dụng giúp thầy cô tạo bài giảng slide <span className="text-white font-semibold">chuyên nghiệp</span> chỉ trong vài giây.
+          <br />
+          Chỉ cần tải lên PDF sách giáo khoa hoặc nhập chủ đề bài học!
         </p>
 
         {/* CTA Button */}
         <button
           onClick={() => setIsAIInputOpen(true)}
-          className="group relative inline-flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white font-semibold text-lg rounded-2xl shadow-2xl shadow-indigo-500/30 hover:shadow-indigo-500/50 transition-all duration-300 hover:scale-105 animate-pulse-glow"
+          className="group relative inline-flex items-center justify-center gap-3 px-10 py-5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white font-bold text-xl rounded-2xl shadow-2xl shadow-purple-500/40 hover:shadow-purple-500/60 transition-all duration-300 hover:scale-105 mb-12"
         >
-          <Sparkles className="w-6 h-6 group-hover:animate-spin" />
-          <span>Bắt Đầu Tạo Slide</span>
-          <Zap className="w-5 h-5" />
+          <Sparkles className="w-7 h-7 group-hover:animate-spin" />
+          <span>Bắt Đầu Tạo Slide Ngay</span>
+          <Zap className="w-6 h-6" />
         </button>
 
-        {/* Features */}
-        <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* How it works - Steps */}
+        <div className="mb-12">
+          <h3 className="text-xl font-semibold text-white mb-6 flex items-center justify-center gap-2">
+            <span className="w-8 h-0.5 bg-gradient-to-r from-transparent to-purple-500"></span>
+            Hướng dẫn sử dụng
+            <span className="w-8 h-0.5 bg-gradient-to-l from-transparent to-purple-500"></span>
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto">
+            <StepCard
+              step={1}
+              title="Nhập API Key"
+              description="Nhấn Settings ở góc phải để nhập Gemini API key miễn phí"
+              icon="🔑"
+            />
+            <StepCard
+              step={2}
+              title="Chọn nội dung"
+              description="Tải file PDF SGK hoặc nhập chủ đề bài học cần tạo slide"
+              icon="📚"
+            />
+            <StepCard
+              step={3}
+              title="Nhận slide"
+              description="AI sẽ tự động tạo slide đẹp, có thể tải về dạng HTML"
+              icon="✨"
+            />
+          </div>
+        </div>
+
+        {/* Features Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
           <FeatureCard
             icon={<FileText className="w-6 h-6" />}
             title="Tải PDF"
-            description="Upload SGK, tài liệu và để AI xử lý"
+            description="Upload SGK, giáo án"
+            color="from-blue-500 to-cyan-500"
           />
           <FeatureCard
             icon={<Sparkles className="w-6 h-6" />}
-            title="AI Thông Minh"
-            description="Gemini AI tạo nội dung chất lượng"
+            title="AI Gemini"
+            description="Tạo nội dung thông minh"
+            color="from-purple-500 to-pink-500"
           />
           <FeatureCard
             icon={<Star className="w-6 h-6" />}
-            title="Thiết Kế Đẹp"
-            description="Slide chuyên nghiệp, sẵn sàng trình bày"
+            title="Công thức Toán"
+            description="Hỗ trợ LaTeX/MathJax"
+            color="from-orange-500 to-red-500"
+          />
+          <FeatureCard
+            icon={<Download className="w-6 h-6" />}
+            title="Tải về HTML"
+            description="Sử dụng offline"
+            color="from-green-500 to-emerald-500"
           />
         </div>
+
+        {/* Footer note */}
+        <p className="mt-10 text-sm text-slate-500">
+          💡 Tip: Nhấn phím <kbd className="px-2 py-1 bg-slate-700 rounded text-slate-300">←</kbd> <kbd className="px-2 py-1 bg-slate-700 rounded text-slate-300">→</kbd> để chuyển slide,
+          <kbd className="px-2 py-1 bg-slate-700 rounded text-slate-300 ml-1">F</kbd> để toàn màn hình
+        </p>
       </div>
     </div>
   );
 
-  const FeatureCard = ({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) => (
-    <div className="glass rounded-2xl p-6 text-left hover:bg-white/10 transition-all duration-300 group cursor-default">
-      <div className="inline-flex items-center justify-center p-3 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl text-white mb-4 group-hover:scale-110 transition-transform">
+  const StepCard = ({ step, title, description, icon }: { step: number; title: string; description: string; icon: string }) => (
+    <div className="glass rounded-xl p-5 text-center hover:bg-white/10 transition-all duration-300 group">
+      <div className="flex items-center justify-center gap-3 mb-3">
+        <span className="text-3xl">{icon}</span>
+        <span className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
+          {step}
+        </span>
+      </div>
+      <h4 className="text-white font-semibold mb-1">{title}</h4>
+      <p className="text-slate-400 text-xs">{description}</p>
+    </div>
+  );
+
+  const FeatureCard = ({ icon, title, description, color }: { icon: React.ReactNode; title: string; description: string; color: string }) => (
+    <div className="glass rounded-xl p-4 text-center hover:bg-white/10 transition-all duration-300 group cursor-default">
+      <div className={`inline-flex items-center justify-center p-3 bg-gradient-to-br ${color} rounded-xl text-white mb-3 group-hover:scale-110 transition-transform shadow-lg`}>
         {icon}
       </div>
-      <h3 className="text-lg font-semibold text-white mb-2">{title}</h3>
-      <p className="text-slate-400 text-sm">{description}</p>
+      <h3 className="text-sm font-semibold text-white mb-1">{title}</h3>
+      <p className="text-slate-400 text-xs">{description}</p>
     </div>
   );
 
