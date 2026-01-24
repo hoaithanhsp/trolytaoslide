@@ -458,13 +458,13 @@ ${editorContent}
 
         {/* Main Greeting */}
         <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 leading-tight text-shadow">
-          <span className="text-white">Chào mừng quý </span>
-          <span className="bg-gradient-to-r from-amber-300 via-yellow-400 to-orange-400 bg-clip-text text-transparent">Thầy Cô</span>
+          <span className="text-white">CHÀO MỪNG QUÝ</span>
+          <span className="bg-gradient-to-r from-amber-300 via-yellow-400 to-orange-400 bg-clip-text text-transparent">THẦY CÔ</span>
         </h1>
 
         <h2 className="text-2xl md:text-3xl font-semibold mb-8">
           <span className="bg-gradient-to-r from-teal-300 via-cyan-300 to-teal-400 bg-clip-text text-transparent">
-            đến với Trợ Lý Tạo Slide Thông Minh
+            ĐẾN VỚI TRỢ LÝ TẠO SLIDE THÔNG MINH
           </span>
         </h2>
 
