@@ -443,27 +443,32 @@ ${editorContent}
 
   // Welcome Screen when no slides
   const WelcomeScreen = () => (
-    <div className="w-full h-full flex items-center justify-center overflow-y-auto py-8">
-      <div className="text-center animate-slideUp max-w-5xl px-6">
+    <div className="w-full h-full flex items-center justify-center overflow-y-auto py-8 bg-grid relative">
+      {/* Decorative circles */}
+      <div className="absolute top-20 left-20 w-64 h-64 bg-teal-500/20 rounded-full blur-3xl animate-breathe"></div>
+      <div className="absolute bottom-20 right-20 w-80 h-80 bg-cyan-500/15 rounded-full blur-3xl animate-breathe" style={{ animationDelay: '1s' }}></div>
+      <div className="absolute top-1/2 left-1/4 w-40 h-40 bg-amber-500/10 rounded-full blur-2xl animate-pulse"></div>
+
+      <div className="text-center animate-slideUp max-w-5xl px-6 relative z-10">
         {/* Welcome Badge */}
-        <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-500/20 to-purple-500/20 rounded-full mb-6 border border-indigo-500/30">
-          <Sparkles className="w-4 h-4 text-indigo-400" />
-          <span className="text-sm font-medium text-indigo-300">Powered by Gemini AI</span>
+        <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-teal-500/20 to-cyan-500/20 rounded-full mb-8 border border-teal-400/30 glow-teal">
+          <Sparkles className="w-4 h-4 text-teal-300" />
+          <span className="text-sm font-medium text-teal-200">Powered by Gemini AI</span>
         </div>
 
         {/* Main Greeting */}
-        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 leading-tight">
+        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 leading-tight text-shadow">
           <span className="text-white">Chào mừng quý </span>
-          <span className="bg-gradient-to-r from-yellow-400 via-orange-400 to-pink-400 bg-clip-text text-transparent">Thầy Cô</span>
+          <span className="bg-gradient-to-r from-amber-300 via-yellow-400 to-orange-400 bg-clip-text text-transparent">Thầy Cô</span>
         </h1>
 
-        <h2 className="text-2xl md:text-3xl font-semibold mb-6">
-          <span className="bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+        <h2 className="text-2xl md:text-3xl font-semibold mb-8">
+          <span className="bg-gradient-to-r from-teal-300 via-cyan-300 to-teal-400 bg-clip-text text-transparent">
             đến với Trợ Lý Tạo Slide Thông Minh
           </span>
         </h2>
 
-        <p className="text-lg text-slate-400 mb-10 max-w-2xl mx-auto leading-relaxed">
+        <p className="text-lg text-teal-100/80 mb-12 max-w-2xl mx-auto leading-relaxed">
           Ứng dụng giúp thầy cô tạo bài giảng slide <span className="text-white font-semibold">chuyên nghiệp</span> chỉ trong vài giây.
           <br />
           Chỉ cần tải lên PDF sách giáo khoa hoặc nhập chủ đề bài học!
@@ -472,7 +477,7 @@ ${editorContent}
         {/* CTA Button */}
         <button
           onClick={() => setIsAIInputOpen(true)}
-          className="group relative inline-flex items-center justify-center gap-3 px-10 py-5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white font-bold text-xl rounded-2xl shadow-2xl shadow-purple-500/40 hover:shadow-purple-500/60 transition-all duration-300 hover:scale-105 mb-12"
+          className="group relative inline-flex items-center justify-center gap-3 px-12 py-5 bg-gradient-to-r from-teal-500 via-teal-400 to-cyan-400 text-teal-950 font-bold text-xl rounded-2xl shadow-2xl glow-teal hover:shadow-teal-400/50 transition-all duration-300 hover:scale-105 mb-14"
         >
           <Sparkles className="w-7 h-7 group-hover:animate-spin" />
           <span>Bắt Đầu Tạo Slide Ngay</span>
@@ -480,13 +485,13 @@ ${editorContent}
         </button>
 
         {/* How it works - Steps */}
-        <div className="mb-12">
-          <h3 className="text-xl font-semibold text-white mb-6 flex items-center justify-center gap-2">
-            <span className="w-8 h-0.5 bg-gradient-to-r from-transparent to-purple-500"></span>
+        <div className="mb-14">
+          <h3 className="text-xl font-semibold text-white mb-8 flex items-center justify-center gap-3">
+            <span className="w-12 h-0.5 bg-gradient-to-r from-transparent to-teal-400"></span>
             Hướng dẫn sử dụng
-            <span className="w-8 h-0.5 bg-gradient-to-l from-transparent to-purple-500"></span>
+            <span className="w-12 h-0.5 bg-gradient-to-l from-transparent to-teal-400"></span>
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 max-w-4xl mx-auto">
             <StepCard
               step={1}
               title="Nhập API Key"
@@ -514,19 +519,19 @@ ${editorContent}
             icon={<FileText className="w-6 h-6" />}
             title="Tải PDF"
             description="Upload SGK, giáo án"
-            color="from-blue-500 to-cyan-500"
+            color="from-teal-400 to-cyan-400"
           />
           <FeatureCard
             icon={<Sparkles className="w-6 h-6" />}
             title="AI Gemini"
             description="Tạo nội dung thông minh"
-            color="from-purple-500 to-pink-500"
+            color="from-cyan-400 to-blue-400"
           />
           <FeatureCard
             icon={<Star className="w-6 h-6" />}
             title="Công thức Toán"
             description="Hỗ trợ LaTeX/MathJax"
-            color="from-orange-500 to-red-500"
+            color="from-amber-400 to-orange-400"
           />
           <FeatureCard
             icon={<Download className="w-6 h-6" />}
