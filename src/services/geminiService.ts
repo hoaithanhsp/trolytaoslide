@@ -117,10 +117,22 @@ const generateSlidePrompt = (
     };
     const subjectInfo = subjectMap[subject];
     if (subjectInfo) {
-      subjectInstruction = `\n\n📚 MÔN HỌC: ${subjectInfo.name}
-- Thuật ngữ chuyên ngành tiếng Anh cần sử dụng: ${subjectInfo.englishTerms}
+      // Môn Tiếng Anh: slide hoàn toàn bằng tiếng Anh
+      if (subject === 'english') {
+        subjectInstruction = `\n\n📚 MÔN HỌC: ${subjectInfo.name}
+- TOÀN BỘ NỘI DUNG SLIDE PHẢI BẰNG TIẾNG ANH (English only)
+- Tiêu đề, nội dung, ví dụ đều viết bằng tiếng Anh
+- Có thể thêm phần dịch nghĩa tiếng Việt nhỏ bên dưới nếu cần
+- Phong cách trực quan: ${subjectInfo.visualStyle}`;
+      } else {
+        // Các môn khác: tiếng Việt, kèm thuật ngữ Anh trong ngoặc
+        subjectInstruction = `\n\n📚 MÔN HỌC: ${subjectInfo.name}
+- NỘI DUNG SLIDE BẰNG TIẾNG VIỆT
+- Thuật ngữ chuyên ngành tiếng Anh kèm trong ngoặc: ${subjectInfo.englishTerms}
 - Phong cách trực quan phù hợp: ${subjectInfo.visualStyle}
-- Khi giới thiệu khái niệm mới, kèm theo thuật ngữ tiếng Anh trong ngoặc`;
+- Khi giới thiệu khái niệm mới, viết tiếng Việt trước, kèm thuật ngữ tiếng Anh trong ngoặc
+  Ví dụ: "Phương trình (Equation)", "Tế bào (Cell)", "Lực (Force)"`;
+      }
     }
   }
 
@@ -151,10 +163,38 @@ MẪU CODE MÔ PHỎNG:
   }
 
   // Hướng dẫn hình ảnh và âm thanh
-  const mediaInstruction = `\n\n🖼️ HÌNH ẢNH VÀ ÂM THANH:
-- Nhúng hình ảnh từ Unsplash: <img src="https://source.unsplash.com/400x300/?keyword" alt="mô tả">
-- Có thể thêm audio từ Freesound (nếu phù hợp): <audio controls src="URL"></audio>
-- Thay "keyword" bằng từ khóa phù hợp với nội dung bài học`;
+  const mediaInstruction = `\n\n🖼️ HÌNH ẢNH:
+- KHÔNG sử dụng hình ảnh bên ngoài vì có thể không load được
+- Thay vào đó, tạo SVG đơn giản để minh họa khái niệm
+- Hoặc dùng emoji lớn để minh họa: <span style="font-size:3rem">📐</span>`;
+
+  // Hướng dẫn màu sắc nhấn mạnh
+  const colorEmphasisInstruction = `\n\n🎨 NHẤN MẠNH NỘI DUNG BẰNG MÀU SẮC:
+Sử dụng các class CSS có sẵn để làm nổi bật nội dung quan trọng:
+
+Màu chữ:
+- <span class="text-primary">màu xanh dương</span>
+- <span class="text-success">màu xanh lá</span>  
+- <span class="text-danger">màu đỏ</span>
+- <span class="text-warning">màu vàng cam</span>
+- <span class="text-pink">màu hồng</span>
+- <span class="text-secondary">màu tím</span>
+
+Highlight nền:
+- <span class="highlight">nền vàng quan trọng</span>
+- <span class="highlight-blue">nền xanh dương</span>
+- <span class="highlight-green">nền xanh lá</span>
+
+Keyword box:
+- <span class="keyword">từ khóa xanh</span>
+- <span class="keyword-green">từ khóa xanh lá</span>
+- <span class="keyword-orange">từ khóa cam</span>
+
+In đậm nhấn mạnh:
+- <span class="emphasis">in đậm xanh</span>
+- <span class="emphasis-red">in đậm đỏ</span>
+
+HÃY SỬ DỤNG LINH HOẠT các class này để nhấn mạnh khái niệm quan trọng, định nghĩa, công thức!`;
 
   return `Bạn là một chuyên gia thiết kế slide thuyết trình giáo dục. Hãy tạo slide HTML cho nội dung sau.
 
@@ -162,7 +202,7 @@ ${topic ? `CHỦ ĐỀ: ${topic}` : ''}
 
 NỘI DUNG TÀI LIỆU:
 ${content}
-${outlineInstruction}${ageAppropriateInstruction}${subjectInstruction}${simulationInstruction}${mediaInstruction}
+${outlineInstruction}${ageAppropriateInstruction}${subjectInstruction}${simulationInstruction}${mediaInstruction}${colorEmphasisInstruction}
 
 YÊU CẦU KỸ THUẬT:
 1. ${slideCountInstruction}
@@ -174,6 +214,7 @@ YÊU CẦU KỸ THUẬT:
 7. Với công thức toán, dùng cú pháp LaTeX trong $$ $$ hoặc $ $
 8. KHÔNG TẠO THÊM BLOCK <style> - template đã có sẵn CSS
 9. KHÔNG sử dụng height: 100vh cho .slide - template sẽ xử lý display
+10. SỬ DỤNG các class màu sắc (.text-primary, .highlight, .keyword...) để nhấn mạnh nội dung
 
 CHỈ TRẢ VỀ CÁC THẺ <section class="slide">...</section>, KHÔNG CÓ MARKDOWN, GIẢI THÍCH HAY BLOCK <style>. Bắt đầu ngay với <section class="slide">`;
 };

@@ -229,10 +229,12 @@ export function SlidePresentation() {
             display: none;
             width: 100%;
             height: 100%;
-            padding: 50px 70px;
+            padding: 40px 60px;
             flex-direction: column;
-            justify-content: center;
+            justify-content: flex-start;
             background: white;
+            overflow-y: auto;
+            overflow-x: hidden;
         }
         .slide.active { display: flex; }
 
@@ -273,6 +275,56 @@ export function SlidePresentation() {
             padding: 25px 30px; margin: 25px 0;
             border-radius: 0 12px 12px 0; font-size: 1.25rem;
             box-shadow: 0 4px 15px rgba(37, 99, 235, 0.1);
+        }
+
+        /* Text emphasis colors - nhấn mạnh nội dung */
+        .text-primary { color: #2563eb !important; }
+        .text-secondary { color: #7c3aed !important; }
+        .text-success { color: #10b981 !important; }
+        .text-warning { color: #f59e0b !important; }
+        .text-danger { color: #ef4444 !important; }
+        .text-info { color: #0ea5e9 !important; }
+        .text-pink { color: #ec4899 !important; }
+        .text-orange { color: #f97316 !important; }
+        
+        /* Background highlights */
+        .highlight { background: linear-gradient(120deg, #fef08a 0%, #fde047 100%); padding: 2px 8px; border-radius: 4px; }
+        .highlight-blue { background: linear-gradient(120deg, #dbeafe 0%, #bfdbfe 100%); padding: 2px 8px; border-radius: 4px; }
+        .highlight-green { background: linear-gradient(120deg, #d1fae5 0%, #a7f3d0 100%); padding: 2px 8px; border-radius: 4px; }
+        .highlight-pink { background: linear-gradient(120deg, #fce7f3 0%, #fbcfe8 100%); padding: 2px 8px; border-radius: 4px; }
+        
+        /* Bold emphasis */
+        .emphasis { font-weight: 700; color: var(--primary); }
+        .emphasis-red { font-weight: 700; color: #ef4444; }
+        .emphasis-green { font-weight: 700; color: #10b981; }
+        
+        /* Keyword box */
+        .keyword {
+            display: inline-block;
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-weight: 600;
+            margin: 2px 4px;
+        }
+        .keyword-green {
+            display: inline-block;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-weight: 600;
+            margin: 2px 4px;
+        }
+        .keyword-orange {
+            display: inline-block;
+            background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-weight: 600;
+            margin: 2px 4px;
         }
 
         /* Controls */
