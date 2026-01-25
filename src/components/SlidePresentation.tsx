@@ -318,12 +318,83 @@ export function SlidePresentation() {
         #step-counter { font-size: 0.8rem; color: #10b981; font-weight: 500; }
         .divider { color: #ccc; margin: 0 5px; }
 
+        /* Simulation styling */
+        .simulation {
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            border: 2px solid #0ea5e9;
+            border-radius: 16px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 4px 20px rgba(14, 165, 233, 0.15);
+        }
+        .simulation svg {
+            display: block;
+            margin: 0 auto;
+            max-width: 100%;
+        }
+        .sim-controls {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #bae6fd;
+        }
+        .sim-controls button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .sim-controls button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.4);
+        }
+        .sim-controls input[type="range"] {
+            width: 150px;
+            accent-color: #0ea5e9;
+        }
+        .sim-controls label {
+            font-size: 0.9rem;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .sim-hint {
+            text-align: center;
+            font-size: 0.85rem;
+            color: #0369a1;
+            margin-top: 10px;
+            font-style: italic;
+        }
+
+        /* Images and audio */
+        .slide img {
+            max-width: 100%;
+            max-height: 200px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            margin: 15px 0;
+        }
+        .slide audio {
+            width: 100%;
+            max-width: 400px;
+            margin: 15px 0;
+        }
+
         @media (max-width: 768px) {
             body { padding: 10px; }
             .slide { padding: 30px 40px; }
             .slide h1 { font-size: 2.2rem; }
             .slide h2 { font-size: 1.8rem; }
             .slide ul, .slide ol, .slide p { font-size: 1.1rem; }
+            .simulation { padding: 15px; }
         }
     </style>
 </head>

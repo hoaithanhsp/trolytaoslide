@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bài Giảng Slide</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;900&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+    <!-- MathJax Configuration -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+            },
+            startup: {
+                pageReady: () => {
+                    return MathJax.startup.defaultPageReady().then(() => {
+                        console.log('MathJax loaded successfully');
+                    });
+                }
+            }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <style>
+        :root {
+            --primary: #2563eb;
+            --secondary: #1e40af;
+            --accent: #f59e0b;
+            --text: #1e293b;
+            --bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Be Vietnam Pro', sans-serif;
+            background: var(--bg);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        #presentation-area {
+            position: relative;
+            width: 100%;
+            max-width: 1200px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .slide-container {
+            width: 100%;
+            aspect-ratio: 16/9;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 25px 80px rgba(0,0,0,0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .slide {
+            display: none;
+            width: 100%;
+            height: 100%;
+            padding: 50px 70px;
+            flex-direction: column;
+            justify-content: center;
+            background: white;
+        }
+        .slide.active { display: flex; }
+
+        /* Step-by-step reveal - ẩn các element chưa được reveal */
+        .slide.active > .step-item {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.4s ease;
+        }
+        .slide.active > .step-item.revealed {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Typography */
+        .slide h1 { 
+            font-size: 3.2rem; font-weight: 800; color: var(--primary); 
+            margin-bottom: 25px; line-height: 1.2;
+        }
+        .slide h2 { 
+            font-size: 2.4rem; font-weight: 700; color: var(--secondary); 
+            margin-bottom: 35px; border-bottom: 4px solid var(--accent); 
+            display: inline-block; padding-bottom: 12px; 
+        }
+        .slide ul, .slide ol { font-size: 1.4rem; line-height: 1.8; padding-left: 45px; color: var(--text); }
+        .slide li { margin-bottom: 18px; }
+        .slide li::marker { color: var(--primary); font-weight: bold; }
+        .slide p { font-size: 1.35rem; margin-bottom: 22px; line-height: 1.7; color: var(--text); }
+
+        /* Math formulas styling */
+        .MathJax { font-size: 1.1em !important; }
+        mjx-container { margin: 5px 0 !important; }
+
+        /* Box styling */
+        .box, [style*="border-left"] {
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+            border-left: 5px solid var(--primary);
+            padding: 25px 30px; margin: 25px 0;
+            border-radius: 0 12px 12px 0; font-size: 1.25rem;
+            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.1);
+        }
+
+        /* Controls */
+        .controls {
+            margin-top: 25px; background: rgba(255,255,255,0.95);
+            padding: 12px 28px; border-radius: 50px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+            display: flex; gap: 12px; align-items: center;
+            backdrop-filter: blur(10px);
+        }
+        .btn {
+            border: none; background: transparent; cursor: pointer;
+            font-size: 1.3rem; color: var(--text); padding: 10px 14px;
+            border-radius: 50%; transition: all 0.3s ease;
+        }
+        .btn:hover { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            color: white; transform: scale(1.1);
+        }
+        
+        /* Nút Next Step - nổi bật hơn */
+        .btn-step {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            font-size: 0.9rem;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            box-shadow: 0 4px 0 #047857, 0 6px 15px rgba(0,0,0,0.2);
+            transition: all 0.15s ease;
+        }
+        .btn-step:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 0 #047857, 0 10px 20px rgba(0,0,0,0.25);
+            background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+        }
+        .btn-step:active {
+            transform: translateY(1px);
+            box-shadow: 0 2px 0 #047857, 0 3px 8px rgba(0,0,0,0.15);
+        }
+        
+        #slide-counter { font-weight: 700; font-size: 1.1rem; min-width: 70px; text-align: center; color: var(--secondary); }
+        #step-counter { font-size: 0.8rem; color: #10b981; font-weight: 500; }
+        .divider { color: #ccc; margin: 0 5px; }
+
+        @media (max-width: 768px) {
+            body { padding: 10px; }
+            .slide { padding: 30px 40px; }
+            .slide h1 { font-size: 2.2rem; }
+            .slide h2 { font-size: 1.8rem; }
+            .slide ul, .slide ol, .slide p { font-size: 1.1rem; }
+        }
+    </style>
+</head>
+<body>
+    <div id="presentation-area">
+        <div class="slide-container" id="slide-wrapper">
+${editorContent}
+        </div>
+
+        <div class="controls">
+            <button class="btn" onclick="prevSlide()" title="Slide trước"><i class="fas fa-chevron-left"></i></button>
+            <span id="slide-counter">1 / ${slides.length}</span>
+            <button class="btn" onclick="nextSlide()" title="Slide sau"><i class="fas fa-chevron-right"></i></button>
+            <span class="divider">|</span>
+            <button class="btn btn-step" onclick="nextStep()" title="Hiện dòng tiếp theo (Space)">
+                <i class="fas fa-plus"></i> Tiếp
+            </button>
+            <span id="step-counter"></span>
+            <span class="divider">|</span>
+            <button class="btn" onclick="toggleFullscreen()" title="Toàn màn hình"><i class="fas fa-expand"></i></button>
+        </div>
+    </div>
+
+    <script>
+        // Đợi DOM loaded hoàn toàn
+        document.addEventListener('DOMContentLoaded', function() {
+            var currentSlide = 0;
+            var currentStep = 0;
+            var slides = document.querySelectorAll('.slide');
+            var slideCounter = document.getElementById('slide-counter');
+            var stepCounter = document.getElementById('step-counter');
+            
+            console.log('Slides found:', slides.length);
+            
+            if (slides.length === 0) {
+                console.error('No slides found with class .slide');
+                return;
+            }
+
+            // Thêm class step-item cho các phần tử con trong slide
+            function initStepItems(slide) {
+                var children = slide.children;
+                for (var i = 0; i < children.length; i++) {
+                    children[i].classList.add('step-item');
+                    children[i].classList.remove('revealed');
+                }
+            }
+
+            // Đếm số step trong slide hiện tại
+            function getStepCount() {
+                var activeSlide = slides[currentSlide];
+                return activeSlide ? activeSlide.querySelectorAll('.step-item').length : 0;
+            }
+
+            // Cập nhật step counter
+            function updateStepCounter() {
+                var total = getStepCount();
+                if (stepCounter && total > 0) {
+                    stepCounter.innerText = currentStep + '/' + total;
+                } else if (stepCounter) {
+                    stepCounter.innerText = '';
+                }
+            }
+
+            // Hiện step tiếp theo
+            window.nextStep = function() {
+                var activeSlide = slides[currentSlide];
+                if (!activeSlide) return;
+                
+                var steps = activeSlide.querySelectorAll('.step-item');
+                if (currentStep < steps.length) {
+                    steps[currentStep].classList.add('revealed');
+                    currentStep++;
+                    updateStepCounter();
+                    
+                    // Re-render MathJax cho step vừa reveal
+                    if (window.MathJax && window.MathJax.typesetPromise) {
+                        window.MathJax.typesetPromise([steps[currentStep - 1]]).catch(function(err) {
+                            console.log('MathJax error:', err);
+                        });
+                    }
+                } else {
+                    // Đã hết step, chuyển slide
+                    window.nextSlide();
+                }
+            };
+            
+            // Hiện tất cả steps
+            function revealAllSteps() {
+                var activeSlide = slides[currentSlide];
+                if (!activeSlide) return;
+                var steps = activeSlide.querySelectorAll('.step-item');
+                for (var i = 0; i < steps.length; i++) {
+                    steps[i].classList.add('revealed');
+                }
+                currentStep = steps.length;
+                updateStepCounter();
+            }
+
+            function showSlide(index) {
+                // Remove active from all slides
+                for (var i = 0; i < slides.length; i++) {
+                    slides[i].classList.remove('active');
+                }
+                
+                // Handle index wrap-around
+                if (index >= slides.length) index = 0;
+                if (index < 0) index = slides.length - 1;
+                
+                currentSlide = index;
+                currentStep = 0;
+                
+                // Init step items
+                initStepItems(slides[currentSlide]);
+                
+                slides[currentSlide].classList.add('active');
+                
+                // Update counter
+                if (slideCounter) {
+                    slideCounter.innerText = (currentSlide + 1) + ' / ' + slides.length;
+                }
+                updateStepCounter();
+                
+                // Re-render MathJax for current slide
+                if (window.MathJax && window.MathJax.typesetPromise) {
+                    window.MathJax.typesetPromise([slides[currentSlide]]).catch(function(err) {
+                        console.log('MathJax error:', err);
+                    });
+                }
+            }
+
+            // Navigation functions (global scope)
+            window.nextSlide = function() { showSlide(currentSlide + 1); };
+            window.prevSlide = function() { showSlide(currentSlide - 1); };
+            window.toggleFullscreen = function() {
+                if (!document.fullscreenElement) { 
+                    document.documentElement.requestFullscreen(); 
+                } else { 
+                    document.exitFullscreen(); 
+                }
+            };
+
+            // Keyboard navigation
+            document.addEventListener('keydown', function(e) {
+                if (e.key === ' ' || e.key === 'Enter') { 
+                    e.preventDefault(); 
+                    window.nextStep(); // Space/Enter = next step
+                }
+                if (e.key === 'ArrowRight') { 
+                    e.preventDefault(); 
+                    window.nextSlide(); // Arrow Right = next slide
+                }
+                if (e.key === 'ArrowLeft') { 
+                    e.preventDefault(); 
+                    window.prevSlide(); 
+                }
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    window.nextStep(); // Arrow Down = next step
+                }
+                if (e.key === 'a' || e.key === 'A') {
+                    revealAllSteps(); // A = reveal all
+                }
+                if (e.key === 'f' || e.key === 'F') {
+                    window.toggleFullscreen();
+                }
+            });
+
+            // Initialize first slide
+            showSlide(0);
+            
+            // Initial MathJax render
+            if (window.MathJax && window.MathJax.typesetPromise) {
+                window.MathJax.typesetPromise().then(function() {
+                    console.log('MathJax initial render complete');
+                });
+            }
+        });
+    </script>
+</body>
+</html>

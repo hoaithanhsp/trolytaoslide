@@ -3,6 +3,46 @@ import { Upload, FileText, Sparkles, X, AlertCircle, CheckCircle, Loader2, ListO
 import { parsePDF, isPDFFile, formatFileSize, ParseProgress } from '../services/pdfParser';
 import { generateSlides, generateOutline, GenerationProgress, ModelId, SlideOutline } from '../services/geminiService';
 
+// Danh sách môn học với thuật ngữ tiếng Anh chuyên ngành
+export const SUBJECTS = [
+    { id: 'math', name: 'Toán học (Mathematics)', icon: '🔢' },
+    { id: 'physics', name: 'Vật lý (Physics)', icon: '⚛️' },
+    { id: 'chemistry', name: 'Hóa học (Chemistry)', icon: '🧪' },
+    { id: 'biology', name: 'Sinh học (Biology)', icon: '🧬' },
+    { id: 'informatics', name: 'Tin học (Informatics)', icon: '💻' },
+    { id: 'literature', name: 'Ngữ văn (Literature)', icon: '📖' },
+    { id: 'history', name: 'Lịch sử (History)', icon: '🏛️' },
+    { id: 'geography', name: 'Địa lý (Geography)', icon: '🌍' },
+    { id: 'technology', name: 'Công nghệ (Technology)', icon: '🔧' },
+    { id: 'music', name: 'Âm nhạc (Music)', icon: '🎵' },
+    { id: 'physical_education', name: 'Thể dục (Physical Education)', icon: '🏃' },
+    { id: 'defense_security', name: 'GDQPAN (Defense & Security Education)', icon: '🎖️' },
+    { id: 'career_orientation', name: 'Hoạt động hướng nghiệp (Career Orientation)', icon: '🎯' },
+    { id: 'local_education', name: 'Giáo dục địa phương (Local Education)', icon: '🏘️' },
+    { id: 'economics_law', name: 'GD Kinh tế & Pháp luật (Economics & Law Education)', icon: '⚖️' },
+    { id: 'english', name: 'Tiếng Anh (English)', icon: '🌐' }
+] as const;
+
+// Danh sách lớp học từ Mầm non đến THPT
+export const GRADE_LEVELS = [
+    { id: 'preschool', name: 'Mầm non (3-5 tuổi)', category: 'Mầm non', ageRange: '3-5' },
+    { id: 'grade1', name: 'Lớp 1', category: 'Tiểu học', ageRange: '6-7' },
+    { id: 'grade2', name: 'Lớp 2', category: 'Tiểu học', ageRange: '7-8' },
+    { id: 'grade3', name: 'Lớp 3', category: 'Tiểu học', ageRange: '8-9' },
+    { id: 'grade4', name: 'Lớp 4', category: 'Tiểu học', ageRange: '9-10' },
+    { id: 'grade5', name: 'Lớp 5', category: 'Tiểu học', ageRange: '10-11' },
+    { id: 'grade6', name: 'Lớp 6', category: 'THCS', ageRange: '11-12' },
+    { id: 'grade7', name: 'Lớp 7', category: 'THCS', ageRange: '12-13' },
+    { id: 'grade8', name: 'Lớp 8', category: 'THCS', ageRange: '13-14' },
+    { id: 'grade9', name: 'Lớp 9', category: 'THCS', ageRange: '14-15' },
+    { id: 'grade10', name: 'Lớp 10', category: 'THPT', ageRange: '15-16' },
+    { id: 'grade11', name: 'Lớp 11', category: 'THPT', ageRange: '16-17' },
+    { id: 'grade12', name: 'Lớp 12', category: 'THPT', ageRange: '17-18' }
+] as const;
+
+export type SubjectId = typeof SUBJECTS[number]['id'];
+export type GradeLevelId = typeof GRADE_LEVELS[number]['id'];
+
 interface AIInputPanelProps {
     isOpen: boolean;
     onClose: () => void;
@@ -38,6 +78,11 @@ export function AIInputPanel({
     const [showOutline, setShowOutline] = useState(false);
     const [outline, setOutline] = useState<SlideOutline[]>([]);
     const [isGeneratingOutline, setIsGeneratingOutline] = useState(false);
+
+    // Môn học, lớp học và mô phỏng trực quan
+    const [subject, setSubject] = useState<SubjectId | ''>('');
+    const [gradeLevel, setGradeLevel] = useState<GradeLevelId | ''>('');
+    const [enableSimulation, setEnableSimulation] = useState(false);
 
     if (!isOpen) return null;
 
@@ -160,7 +205,10 @@ export function AIInputPanel({
                 setGenerationProgress(progress);
             },
             slideCount ? slideCount as number : undefined,
-            outline.length > 0 ? outline : undefined
+            outline.length > 0 ? outline : undefined,
+            subject || undefined,
+            gradeLevel || undefined,
+            enableSimulation
         );
 
         setIsProcessing(false);
@@ -203,6 +251,9 @@ export function AIInputPanel({
         setSlideCount('');
         setOutline([]);
         setShowOutline(false);
+        setSubject('');
+        setGradeLevel('');
+        setEnableSimulation(false);
     };
 
     const getProgressPercentage = () => {
@@ -269,6 +320,85 @@ export function AIInputPanel({
                             <Upload className="w-4 h-4 inline-block mr-2" />
                             Tải File PDF
                         </button>
+                    </div>
+
+                    {/* Subject & Grade Selection */}
+                    <div className="grid grid-cols-2 gap-4">
+                        {/* Subject Dropdown */}
+                        <div>
+                            <label className="block text-sm font-semibold text-slate-700 mb-2">
+                                📚 Môn học
+                            </label>
+                            <select
+                                value={subject}
+                                onChange={(e) => setSubject(e.target.value as SubjectId | '')}
+                                disabled={isProcessing}
+                                className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-200 focus:border-purple-400 transition-all disabled:bg-slate-100 bg-white text-sm"
+                            >
+                                <option value="">-- Chọn môn học --</option>
+                                {SUBJECTS.map((subj) => (
+                                    <option key={subj.id} value={subj.id}>
+                                        {subj.icon} {subj.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {/* Grade Level Dropdown */}
+                        <div>
+                            <label className="block text-sm font-semibold text-slate-700 mb-2">
+                                🎓 Lớp học
+                            </label>
+                            <select
+                                value={gradeLevel}
+                                onChange={(e) => setGradeLevel(e.target.value as GradeLevelId | '')}
+                                disabled={isProcessing}
+                                className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-200 focus:border-purple-400 transition-all disabled:bg-slate-100 bg-white text-sm"
+                            >
+                                <option value="">-- Chọn lớp --</option>
+                                <optgroup label="🌸 Mầm non">
+                                    {GRADE_LEVELS.filter(g => g.category === 'Mầm non').map((grade) => (
+                                        <option key={grade.id} value={grade.id}>{grade.name}</option>
+                                    ))}
+                                </optgroup>
+                                <optgroup label="📖 Tiểu học">
+                                    {GRADE_LEVELS.filter(g => g.category === 'Tiểu học').map((grade) => (
+                                        <option key={grade.id} value={grade.id}>{grade.name}</option>
+                                    ))}
+                                </optgroup>
+                                <optgroup label="📘 THCS">
+                                    {GRADE_LEVELS.filter(g => g.category === 'THCS').map((grade) => (
+                                        <option key={grade.id} value={grade.id}>{grade.name}</option>
+                                    ))}
+                                </optgroup>
+                                <optgroup label="📕 THPT">
+                                    {GRADE_LEVELS.filter(g => g.category === 'THPT').map((grade) => (
+                                        <option key={grade.id} value={grade.id}>{grade.name}</option>
+                                    ))}
+                                </optgroup>
+                            </select>
+                        </div>
+                    </div>
+
+                    {/* Interactive Simulation Toggle */}
+                    <div className="bg-gradient-to-r from-cyan-50 to-blue-50 rounded-xl p-4 border border-cyan-200">
+                        <label className="flex items-center gap-3 cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={enableSimulation}
+                                onChange={(e) => setEnableSimulation(e.target.checked)}
+                                disabled={isProcessing}
+                                className="w-5 h-5 rounded-lg border-2 border-cyan-400 text-cyan-600 focus:ring-cyan-300 focus:ring-2 transition-all"
+                            />
+                            <div className="flex-1">
+                                <span className="font-semibold text-slate-700 flex items-center gap-2">
+                                    🎮 Tạo mô phỏng trực quan tương tác
+                                </span>
+                                <p className="text-xs text-slate-500 mt-1">
+                                    AI sẽ tạo các mô phỏng SVG/Canvas tương tác phù hợp với môn học (đồ thị, phản ứng hóa học, sơ đồ...)
+                                </p>
+                            </div>
+                        </label>
                     </div>
 
                     {/* Topic Input */}

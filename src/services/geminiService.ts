@@ -52,7 +52,10 @@ const generateSlidePrompt = (
   content: string,
   topic?: string,
   slideCount?: number,
-  outline?: SlideOutline[]
+  outline?: SlideOutline[],
+  subject?: string,
+  gradeLevel?: string,
+  enableSimulation?: boolean
 ): string => {
   const slideCountInstruction = slideCount
     ? `Tạo ĐÚNG ${slideCount} slide`
@@ -64,15 +67,104 @@ const generateSlidePrompt = (
     ).join('\n')}`
     : '';
 
+  // Hướng dẫn theo lớp học
+  let ageAppropriateInstruction = '';
+  if (gradeLevel) {
+    const gradeLevelMap: Record<string, { level: string, style: string, complexity: string }> = {
+      'preschool': { level: 'Mầm non (3-5 tuổi)', style: 'rất đơn giản, nhiều hình ảnh minh họa đầy màu sắc, ít chữ, font lớn', complexity: 'rất cơ bản' },
+      'grade1': { level: 'Lớp 1 (6-7 tuổi)', style: 'đơn giản, nhiều hình ảnh, chữ to rõ ràng', complexity: 'cơ bản' },
+      'grade2': { level: 'Lớp 2 (7-8 tuổi)', style: 'đơn giản, hình ảnh minh họa phong phú', complexity: 'cơ bản' },
+      'grade3': { level: 'Lớp 3 (8-9 tuổi)', style: 'vừa phải, có hình ảnh hỗ trợ', complexity: 'cơ bản đến trung bình' },
+      'grade4': { level: 'Lớp 4 (9-10 tuổi)', style: 'rõ ràng, có ví dụ minh họa', complexity: 'trung bình' },
+      'grade5': { level: 'Lớp 5 (10-11 tuổi)', style: 'chi tiết hơn, kết hợp hình và chữ', complexity: 'trung bình' },
+      'grade6': { level: 'Lớp 6 THCS (11-12 tuổi)', style: 'chi tiết, có sơ đồ và biểu đồ', complexity: 'trung bình khá' },
+      'grade7': { level: 'Lớp 7 THCS (12-13 tuổi)', style: 'logic, có dẫn chứng', complexity: 'khá' },
+      'grade8': { level: 'Lớp 8 THCS (13-14 tuổi)', style: 'chuyên sâu hơn, có công thức', complexity: 'khá đến nâng cao' },
+      'grade9': { level: 'Lớp 9 THCS (14-15 tuổi)', style: 'toàn diện, chuẩn bị thi', complexity: 'nâng cao' },
+      'grade10': { level: 'Lớp 10 THPT (15-16 tuổi)', style: 'học thuật, có lý thuyết và ví dụ', complexity: 'nâng cao' },
+      'grade11': { level: 'Lớp 11 THPT (16-17 tuổi)', style: 'chuyên sâu, công thức phức tạp', complexity: 'nâng cao' },
+      'grade12': { level: 'Lớp 12 THPT (17-18 tuổi)', style: 'ôn thi, tổng hợp kiến thức', complexity: 'nâng cao, tổng kết' }
+    };
+    const gradeInfo = gradeLevelMap[gradeLevel];
+    if (gradeInfo) {
+      ageAppropriateInstruction = `\n\n🎓 ĐỐI TƯỢNG: ${gradeInfo.level}
+- Phong cách trình bày: ${gradeInfo.style}
+- Độ phức tạp nội dung: ${gradeInfo.complexity}
+- Điều chỉnh ngôn ngữ và thuật ngữ phù hợp với lứa tuổi`;
+    }
+  }
+
+  // Hướng dẫn theo môn học
+  let subjectInstruction = '';
+  if (subject) {
+    const subjectMap: Record<string, { name: string, englishTerms: string, visualStyle: string }> = {
+      'math': { name: 'Toán học (Mathematics)', englishTerms: 'equation, function, derivative, integral, theorem, proof', visualStyle: 'đồ thị hàm số, hình học, công thức' },
+      'physics': { name: 'Vật lý (Physics)', englishTerms: 'force, velocity, acceleration, energy, momentum, wave', visualStyle: 'sơ đồ lực, biểu đồ chuyển động, mô hình thí nghiệm' },
+      'chemistry': { name: 'Hóa học (Chemistry)', englishTerms: 'atom, molecule, reaction, compound, element, bond', visualStyle: 'công thức cấu tạo, phương trình phản ứng, mô hình phân tử' },
+      'biology': { name: 'Sinh học (Biology)', englishTerms: 'cell, DNA, protein, ecosystem, evolution, organism', visualStyle: 'sơ đồ tế bào, chu trình sinh học, cây phát sinh' },
+      'informatics': { name: 'Tin học (Informatics)', englishTerms: 'algorithm, variable, function, loop, array, database', visualStyle: 'sơ đồ khối, code snippet, flowchart' },
+      'literature': { name: 'Ngữ văn (Literature)', englishTerms: 'metaphor, narrative, theme, character, plot, poetry', visualStyle: 'trích dẫn, sơ đồ tư duy, timeline tác phẩm' },
+      'history': { name: 'Lịch sử (History)', englishTerms: 'era, civilization, revolution, dynasty, treaty, reform', visualStyle: 'timeline lịch sử, bản đồ, hình ảnh tư liệu' },
+      'geography': { name: 'Địa lý (Geography)', englishTerms: 'climate, terrain, population, economy, natural resources', visualStyle: 'bản đồ, biểu đồ thống kê, sơ đồ địa hình' },
+      'technology': { name: 'Công nghệ (Technology)', englishTerms: 'design, process, material, structure, system, automation', visualStyle: 'sơ đồ quy trình, bản vẽ kỹ thuật' },
+      'music': { name: 'Âm nhạc (Music)', englishTerms: 'melody, rhythm, harmony, tempo, dynamics, notation', visualStyle: 'bản nhạc, ký hiệu nhạc, hình ảnh nhạc cụ' },
+      'physical_education': { name: 'Thể dục (Physical Education)', englishTerms: 'exercise, training, technique, stamina, flexibility', visualStyle: 'hình minh họa động tác, sơ đồ sân bãi' },
+      'defense_security': { name: 'GDQPAN (Defense & Security)', englishTerms: 'defense, security, training, discipline, patriotism', visualStyle: 'sơ đồ đội hình, hình ảnh minh họa' },
+      'career_orientation': { name: 'Hướng nghiệp (Career Orientation)', englishTerms: 'career, skills, profession, interview, resume', visualStyle: 'sơ đồ nghề nghiệp, infographic' },
+      'local_education': { name: 'GD địa phương (Local Education)', englishTerms: 'culture, tradition, heritage, community', visualStyle: 'hình ảnh địa phương, bản đồ vùng miền' },
+      'economics_law': { name: 'KT & Pháp luật (Economics & Law)', englishTerms: 'market, supply, demand, law, rights, constitution', visualStyle: 'sơ đồ kinh tế, biểu đồ, các điều luật' },
+      'english': { name: 'Tiếng Anh (English)', englishTerms: 'grammar, vocabulary, pronunciation, speaking, listening', visualStyle: 'ví dụ câu, từ vựng với hình ảnh, bảng ngữ pháp' }
+    };
+    const subjectInfo = subjectMap[subject];
+    if (subjectInfo) {
+      subjectInstruction = `\n\n📚 MÔN HỌC: ${subjectInfo.name}
+- Thuật ngữ chuyên ngành tiếng Anh cần sử dụng: ${subjectInfo.englishTerms}
+- Phong cách trực quan phù hợp: ${subjectInfo.visualStyle}
+- Khi giới thiệu khái niệm mới, kèm theo thuật ngữ tiếng Anh trong ngoặc`;
+    }
+  }
+
+  // Hướng dẫn mô phỏng trực quan
+  let simulationInstruction = '';
+  if (enableSimulation) {
+    simulationInstruction = `\n\n🎮 MÔ PHỎNG TRỰC QUAN TƯƠNG TÁC:
+TẠO MÔ PHỎNG SVG/CANVAS TƯƠNG TÁC trong slide. Yêu cầu:
+1. Sử dụng <div class="simulation"> chứa inline SVG hoặc Canvas
+2. Thêm JavaScript inline để xử lý tương tác (click, hover, slider)
+3. Ví dụ mô phỏng theo môn:
+   - Toán: Đồ thị hàm số với slider điều chỉnh tham số, hình học động
+   - Vật lý: Mô phỏng chuyển động (rơi tự do, dao động), sóng, lực
+   - Hóa học: Mô hình phân tử 3D đơn giản, phản ứng hóa học động
+   - Sinh học: Sơ đồ tế bào có thể click xem chi tiết, chu trình
+   - Các môn khác: Timeline tương tác, sơ đồ tư duy có thể mở rộng
+4. Code phải đơn giản, chạy được ngay trong browser
+5. Thêm hướng dẫn sử dụng cho học sinh ("Click vào...", "Kéo thanh trượt...")
+
+MẪU CODE MÔ PHỎNG:
+<div class="simulation">
+  <svg viewBox="0 0 400 300" style="width:100%;max-height:250px;background:#f8fafc;border-radius:8px;">
+    <!-- SVG content here -->
+  </svg>
+  <div class="sim-controls"><!-- Buttons, sliders --></div>
+  <script>(function(){ /* Interactive JS */ })();</script>
+</div>`;
+  }
+
+  // Hướng dẫn hình ảnh và âm thanh
+  const mediaInstruction = `\n\n🖼️ HÌNH ẢNH VÀ ÂM THANH:
+- Nhúng hình ảnh từ Unsplash: <img src="https://source.unsplash.com/400x300/?keyword" alt="mô tả">
+- Có thể thêm audio từ Freesound (nếu phù hợp): <audio controls src="URL"></audio>
+- Thay "keyword" bằng từ khóa phù hợp với nội dung bài học`;
+
   return `Bạn là một chuyên gia thiết kế slide thuyết trình giáo dục. Hãy tạo slide HTML cho nội dung sau.
 
 ${topic ? `CHỦ ĐỀ: ${topic}` : ''}
 
 NỘI DUNG TÀI LIỆU:
 ${content}
-${outlineInstruction}
+${outlineInstruction}${ageAppropriateInstruction}${subjectInstruction}${simulationInstruction}${mediaInstruction}
 
-YÊU CẦU:
+YÊU CẦU KỸ THUẬT:
 1. ${slideCountInstruction}
 2. Mỗi slide phải có class="slide" 
 3. Slide đầu tiên là trang tiêu đề với h1
@@ -181,7 +273,10 @@ export async function generateSlides(
   topic?: string,
   onProgress?: (progress: GenerationProgress) => void,
   slideCount?: number,
-  outline?: SlideOutline[]
+  outline?: SlideOutline[],
+  subject?: string,
+  gradeLevel?: string,
+  enableSimulation?: boolean
 ): Promise<GenerationResult> {
   // Xác định thứ tự model để thử
   const modelsToTry = selectedModel
@@ -189,7 +284,7 @@ export async function generateSlides(
     : AI_MODELS.map(m => m.id);
 
   const totalSteps = 3; // Analyze, Generate, Format
-  const prompt = generateSlidePrompt(content, topic, slideCount, outline);
+  const prompt = generateSlidePrompt(content, topic, slideCount, outline, subject, gradeLevel, enableSimulation);
 
   for (let modelIndex = 0; modelIndex < modelsToTry.length; modelIndex++) {
     const currentModel = modelsToTry[modelIndex];
