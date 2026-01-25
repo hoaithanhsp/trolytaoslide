@@ -488,6 +488,20 @@ export function AIInputPanel({
                                                     className="flex-1 px-3 py-1.5 border border-slate-200 rounded-lg text-sm font-medium focus:outline-none focus:border-purple-400"
                                                     placeholder="Tiêu đề slide"
                                                 />
+                                                {/* Checkbox mô phỏng cho slide này */}
+                                                <label className="flex items-center gap-1.5 cursor-pointer bg-cyan-50 px-2 py-1 rounded-lg border border-cyan-200 hover:bg-cyan-100 transition-colors">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={slide.enableSimulation || false}
+                                                        onChange={(e) => {
+                                                            const newOutline = [...outline];
+                                                            newOutline[slideIndex].enableSimulation = e.target.checked;
+                                                            setOutline(newOutline);
+                                                        }}
+                                                        className="w-4 h-4 rounded border-cyan-400 text-cyan-600 focus:ring-cyan-300"
+                                                    />
+                                                    <span className="text-xs font-medium text-cyan-700">🎮 Mô phỏng</span>
+                                                </label>
                                             </div>
                                             <div className="pl-8 space-y-1">
                                                 {slide.keyPoints.map((point, pointIndex) => (

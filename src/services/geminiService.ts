@@ -26,6 +26,7 @@ export interface SlideOutline {
   slideNumber: number;
   title: string;
   keyPoints: string[];
+  enableSimulation?: boolean; // Tùy chọn tạo mô phỏng cho slide này
 }
 
 const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
@@ -63,9 +64,13 @@ const generateSlidePrompt = (
 
   const outlineInstruction = outline && outline.length > 0
     ? `\nDÀN Ý YÊU CẦU (tuân theo cấu trúc này):\n${outline.map(s =>
-      `Slide ${s.slideNumber}: ${s.title}\n  - ${s.keyPoints.join('\n  - ')}`
+      `Slide ${s.slideNumber}: ${s.title}${s.enableSimulation ? ' 🎮[CẦN MÔ PHỎNG TƯƠNG TÁC]' : ''}\n  - ${s.keyPoints.join('\n  - ')}`
     ).join('\n')}`
     : '';
+
+  // Kiểm tra xem có slide nào cần mô phỏng không
+  const slidesWithSimulation = outline?.filter(s => s.enableSimulation) || [];
+  const hasPerSlideSimulation = slidesWithSimulation.length > 0;
 
   // Hướng dẫn theo lớp học
   let ageAppropriateInstruction = '';
@@ -125,22 +130,28 @@ const generateSlidePrompt = (
 - Có thể thêm phần dịch nghĩa tiếng Việt nhỏ bên dưới nếu cần
 - Phong cách trực quan: ${subjectInfo.visualStyle}`;
       } else {
-        // Các môn khác: tiếng Việt, kèm thuật ngữ Anh trong ngoặc
+        // Các môn khác: CHỈ dùng tiếng Việt, KHÔNG kèm thuật ngữ tiếng Anh
         subjectInstruction = `\n\n📚 MÔN HỌC: ${subjectInfo.name}
-- NỘI DUNG SLIDE BẰNG TIẾNG VIỆT
-- Thuật ngữ chuyên ngành tiếng Anh kèm trong ngoặc: ${subjectInfo.englishTerms}
-- Phong cách trực quan phù hợp: ${subjectInfo.visualStyle}
-- Khi giới thiệu khái niệm mới, viết tiếng Việt trước, kèm thuật ngữ tiếng Anh trong ngoặc
-  Ví dụ: "Phương trình (Equation)", "Tế bào (Cell)", "Lực (Force)"`;
+- TOÀN BỘ NỘI DUNG SLIDE BẰNG TIẾNG VIỆT
+- KHÔNG sử dụng thuật ngữ tiếng Anh
+- Phong cách trực quan phù hợp: ${subjectInfo.visualStyle}`;
       }
     }
   }
 
   // Hướng dẫn mô phỏng trực quan
   let simulationInstruction = '';
-  if (enableSimulation) {
+
+  // Kiểm tra: có mô phỏng toàn cục HOẶC có slide nào được chọn mô phỏng
+  if (enableSimulation || hasPerSlideSimulation) {
+    const simulationTarget = hasPerSlideSimulation
+      ? `CHỈ TẠO MÔ PHỎNG CHO CÁC SLIDE SAU: ${slidesWithSimulation.map(s => `Slide ${s.slideNumber}`).join(', ')}`
+      : 'TẠO MÔ PHỎNG CHO TẤT CẢ CÁC SLIDE PHÙ HỢP';
+
     simulationInstruction = `\n\n🎮 MÔ PHỎNG TRỰC QUAN TƯƠNG TÁC:
-TẠO MÔ PHỎNG SVG/CANVAS TƯƠNG TÁC trong slide. Yêu cầu:
+${simulationTarget}
+
+Yêu cầu kỹ thuật:
 1. Sử dụng <div class="simulation"> chứa inline SVG hoặc Canvas
 2. Thêm JavaScript inline để xử lý tương tác (click, hover, slider)
 3. Ví dụ mô phỏng theo môn:

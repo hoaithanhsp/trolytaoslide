@@ -201,26 +201,23 @@ export function SlidePresentation() {
             background: var(--bg);
             min-height: 100vh;
             display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
+            flex-direction: column;
+            padding: 0;
+            overflow: hidden;
         }
 
         #presentation-area {
             position: relative;
             width: 100%;
-            max-width: 1200px;
+            height: 100vh;
             display: flex;
             flex-direction: column;
-            align-items: center;
         }
 
         .slide-container {
+            flex: 1;
             width: 100%;
-            aspect-ratio: 16/9;
             background: white;
-            border-radius: 16px;
-            box-shadow: 0 25px 80px rgba(0,0,0,0.3);
             position: relative;
             overflow: hidden;
         }
@@ -327,22 +324,29 @@ export function SlidePresentation() {
             margin: 2px 4px;
         }
 
-        /* Controls */
+        /* Controls - thanh công cụ cố định ở dưới */
         .controls {
-            margin-top: 25px; background: rgba(255,255,255,0.95);
-            padding: 12px 28px; border-radius: 50px;
-            box-shadow: 0 8px 30px rgba(0,0,0,0.15);
-            display: flex; gap: 12px; align-items: center;
-            backdrop-filter: blur(10px);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 12px 28px;
+            display: flex; 
+            gap: 16px; 
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
         }
         .btn {
-            border: none; background: transparent; cursor: pointer;
-            font-size: 1.3rem; color: var(--text); padding: 10px 14px;
-            border-radius: 50%; transition: all 0.3s ease;
+            border: none; 
+            background: rgba(255,255,255,0.2); 
+            cursor: pointer;
+            font-size: 1.3rem; 
+            color: white; 
+            padding: 10px 14px;
+            border-radius: 50%; 
+            transition: all 0.3s ease;
         }
         .btn:hover { 
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-            color: white; transform: scale(1.1);
+            background: rgba(255,255,255,0.4); 
+            transform: scale(1.1);
         }
         
         /* Nút Next Step - nổi bật hơn */
@@ -355,6 +359,8 @@ export function SlidePresentation() {
             font-weight: 600;
             box-shadow: 0 4px 0 #047857, 0 6px 15px rgba(0,0,0,0.2);
             transition: all 0.15s ease;
+            border: none;
+            cursor: pointer;
         }
         .btn-step:hover {
             transform: translateY(-2px);
@@ -366,9 +372,9 @@ export function SlidePresentation() {
             box-shadow: 0 2px 0 #047857, 0 3px 8px rgba(0,0,0,0.15);
         }
         
-        #slide-counter { font-weight: 700; font-size: 1.1rem; min-width: 70px; text-align: center; color: var(--secondary); }
-        #step-counter { font-size: 0.8rem; color: #10b981; font-weight: 500; }
-        .divider { color: #ccc; margin: 0 5px; }
+        #slide-counter { font-weight: 700; font-size: 1.1rem; min-width: 70px; text-align: center; color: white; }
+        #step-counter { font-size: 0.8rem; color: #a7f3d0; font-weight: 500; }
+        .divider { color: rgba(255,255,255,0.5); margin: 0 8px; }
 
         /* Simulation styling */
         .simulation {
