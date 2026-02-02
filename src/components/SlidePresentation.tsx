@@ -1,12 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Code2, Maximize2, Minimize2, Download, Sparkles, Zap, FileText, Star, FileSliders } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Code2, Maximize2, Minimize2, Download, Sparkles, Zap, FileText, Star, FileSliders, Calculator } from 'lucide-react';
 import { CodeEditor } from './CodeEditor';
 import { Header } from './Header';
 import { ApiKeyModal } from './ApiKeyModal';
 import { AIInputPanel } from './AIInputPanel';
 import { defaultSlides } from '../data/slides';
 import { useApiKey } from '../hooks/useApiKey';
-import { generatePptx } from '../services/pptxService';
+import { generatePptx, generatePptxWithMath } from '../services/pptxService';
 
 declare global {
   interface Window {
@@ -26,6 +26,7 @@ export function SlidePresentation() {
   );
   const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
   const [isAIInputOpen, setIsAIInputOpen] = useState(false);
+  const [isExportingMath, setIsExportingMath] = useState(false);
 
   const slideWrapperRef = useRef<HTMLDivElement>(null);
   const presentationAreaRef = useRef<HTMLDivElement>(null);
@@ -625,6 +626,18 @@ ${editorContent}
     }
   };
 
+  const downloadPPTXVisual = async () => {
+    try {
+      setIsExportingMath(true);
+      await generatePptxWithMath(slides, 'bai-giang-slide-visual');
+    } catch (error) {
+      console.error('Lỗi xuất PPTX trực quan:', error);
+      alert('Có lỗi khi xuất file PPTX. Vui lòng thử lại.');
+    } finally {
+      setIsExportingMath(false);
+    }
+  };
+
   // Welcome Screen when no slides
   const WelcomeScreen = () => (
     <div className="w-full h-full flex items-center justify-center overflow-y-auto py-8 bg-grid relative">
@@ -863,6 +876,14 @@ ${editorContent}
                   title="Tải về PPTX (PowerPoint)"
                 >
                   <FileSliders className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={downloadPPTXVisual}
+                  disabled={isExportingMath}
+                  className={`p-2 hover:bg-purple-500/30 rounded-full transition-all text-purple-300 ${isExportingMath ? 'opacity-50 cursor-wait' : ''}`}
+                  title="Tải về PPTX với công thức trực quan"
+                >
+                  <Calculator className={`w-5 h-5 ${isExportingMath ? 'animate-pulse' : ''}`} />
                 </button>
               </div>
             </div>
