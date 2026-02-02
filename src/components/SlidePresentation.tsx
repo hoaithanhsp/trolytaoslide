@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Code2, Maximize2, Minimize2, Download, Sparkles, Zap, FileText, Star } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Code2, Maximize2, Minimize2, Download, Sparkles, Zap, FileText, Star, FileSliders } from 'lucide-react';
 import { CodeEditor } from './CodeEditor';
 import { Header } from './Header';
 import { ApiKeyModal } from './ApiKeyModal';
 import { AIInputPanel } from './AIInputPanel';
 import { defaultSlides } from '../data/slides';
 import { useApiKey } from '../hooks/useApiKey';
+import { generatePptx } from '../services/pptxService';
 
 declare global {
   interface Window {
@@ -80,35 +81,6 @@ export function SlidePresentation() {
       }));
       setSlides(newSlides);
       setCurrentSlide(Math.min(currentSlide, newSlides.length - 1));
-    }
-  };
-
-  // Handle direct editing on slide preview - sync to code editor
-  const handleSlideContentEdit = (newContent: string, slideIndex: number) => {
-    // Update the specific slide's content
-    const updatedSlides = [...slides];
-    if (updatedSlides[slideIndex]) {
-      updatedSlides[slideIndex] = {
-        ...updatedSlides[slideIndex],
-        content: newContent,
-        title: (() => {
-          const tempDiv = document.createElement('div');
-          tempDiv.innerHTML = newContent;
-          return tempDiv.querySelector('h1, h2')?.textContent || updatedSlides[slideIndex].title;
-        })()
-      };
-      setSlides(updatedSlides);
-
-      // Rebuild full editor content from all slides
-      const fullContent = updatedSlides
-        .map(slide => `<section class="slide">${slide.content}</section>`)
-        .join('\n');
-      setEditorContent(fullContent);
-
-      // Re-render MathJax
-      if (window.MathJax && slideWrapperRef.current) {
-        window.MathJax.typesetPromise?.([slideWrapperRef.current]);
-      }
     }
   };
 
@@ -644,6 +616,15 @@ ${editorContent}
     a.click();
   };
 
+  const downloadPPTX = async () => {
+    try {
+      await generatePptx(slides, 'bai-giang-slide');
+    } catch (error) {
+      console.error('Lỗi xuất PPTX:', error);
+      alert('Có lỗi khi xuất file PPTX. Vui lòng thử lại.');
+    }
+  };
+
   // Welcome Screen when no slides
   const WelcomeScreen = () => (
     <div className="w-full h-full flex items-center justify-center overflow-y-auto py-8 bg-grid relative">
@@ -875,6 +856,13 @@ ${editorContent}
                   title="Tải về HTML"
                 >
                   <Download className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={downloadPPTX}
+                  className="p-2 hover:bg-orange-500/30 rounded-full transition-all text-orange-300"
+                  title="Tải về PPTX (PowerPoint)"
+                >
+                  <FileSliders className="w-5 h-5" />
                 </button>
               </div>
             </div>

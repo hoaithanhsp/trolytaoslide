@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Key, ExternalLink, Sparkles, Check } from 'lucide-react';
 import { AI_MODELS, ModelId, validateApiKey } from '../services/geminiService';
 
@@ -92,8 +92,8 @@ export function ApiKeyModal({
                                     key={model.id}
                                     onClick={() => onSelectModel(model.id)}
                                     className={`relative p-4 rounded-xl border-2 transition-all duration-200 text-left ${selectedModel === model.id
-                                            ? 'border-blue-500 bg-blue-50 shadow-lg shadow-blue-100'
-                                            : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                                        ? 'border-blue-500 bg-blue-50 shadow-lg shadow-blue-100'
+                                        : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
                                         }`}
                                 >
                                     {selectedModel === model.id && (
