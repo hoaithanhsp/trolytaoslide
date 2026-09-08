@@ -163,6 +163,50 @@ export function SlidePresentation() {
     return () => clearTimeout(timer);
   }, [currentSlide, slides]);
 
+  // Đồng bộ class 'revealed' và 'current-focus' lên DOM khi currentStep hoặc currentSlide thay đổi
+  useEffect(() => {
+    if (!slideWrapperRef.current || slides.length === 0) return;
+
+    const timer = setTimeout(() => {
+      const slideDivs = slideWrapperRef.current?.querySelectorAll('[data-slide-index]');
+      if (!slideDivs) return;
+
+      const activeSlideDiv = slideDivs[currentSlide] as HTMLElement | undefined;
+      if (!activeSlideDiv) return;
+
+      // Slide 0 (trang bìa) - luôn hiện hết
+      if (currentSlide === 0) {
+        const steps = activeSlideDiv.querySelectorAll('.step-item');
+        steps.forEach((st) => {
+          st.classList.add('revealed');
+          st.classList.remove('current-focus');
+        });
+        return;
+      }
+
+      const steps = Array.from(activeSlideDiv.querySelectorAll('.step-item'));
+      steps.forEach((st, idx) => {
+        if (idx < currentStep) {
+          st.classList.add('revealed');
+        } else {
+          st.classList.remove('revealed');
+        }
+        st.classList.remove('current-focus');
+      });
+
+      // Đánh dấu bước vừa hiện (current-focus)
+      if (currentStep > 0 && currentStep <= steps.length) {
+        steps[currentStep - 1].classList.add('current-focus');
+      }
+
+      // Re-render MathJax cho bước vừa hiện
+      if (currentStep > 0 && currentStep <= steps.length) {
+        triggerMathJax(steps[currentStep - 1] as Element);
+      }
+    }, 30);
+    return () => clearTimeout(timer);
+  }, [currentStep, currentSlide, slides]);
+
   // Cập nhật phím tắt: Space/Enter/Mũi tên Phải/Xuống -> Dòng tiếp; Mũi tên Trái/Lên -> Lùi; A -> Hiện hết
   useEffect(() => {
     const handleKeydown = (e: KeyboardEvent) => {
@@ -390,6 +434,7 @@ export function SlidePresentation() {
     }
   };
 
+  /* eslint-disable no-useless-escape */
   const downloadHTML = () => {
     const lectureTitle = slides[0]?.title || 'Bài Giảng Slide Tương Tác';
     const slidesDataJson = JSON.stringify(
@@ -980,21 +1025,22 @@ ${renderedSlidesHtml}
       initDrawer();
     }
 
+    /* eslint-disable no-useless-escape */
     function renderMathContent(element) {
       if (element && element.innerHTML) {
         if (element.innerHTML.indexOf('♠') !== -1 || element.innerHTML.indexOf('orall') !== -1 || element.innerHTML.indexOf('overline{') !== -1 || element.innerHTML.indexOf('ext"') !== -1) {
           element.innerHTML = element.innerHTML
-            .replace(/[\\u000c♠]\\s*orall/gi, '\\\\forall ')
-            .replace(/[\\u000c♠]\\s*forall/gi, '\\\\forall ')
-            .replace(/[\\u000c♠]/g, '')
-            .replace(/(?<!\\\\)overline\\{/g, '\\\\overline{')
+            .replace(/[\u000c\u2660]\s*orall/gi, '\\\\forall ')
+            .replace(/[\u000c\u2660]\s*forall/gi, '\\\\forall ')
+            .replace(/[\u000c\u2660]/g, '')
+            .replace(/(?<!\\\\)overline\{/g, '\\\\overline{')
             .replace(/(?<!\\\\)overline([A-Z])/g, '\\\\overline{$1}')
-            .replace(/[\\t\\s]?ext"/g, '\\\\text{"')
-            .replace(/(?<!\\\\)equiv(?=\\s)/g, '\\\\equiv')
-            .replace(/(?<!\\\\)exists(?=\\s|[a-zA-Z0-9_{}()])/g, '\\\\exists ')
-            .replace(/(?<!\\\\)mathbb\\{([A-Z])\\}/g, '\\\\mathbb{$1}')
-            .replace(/(?<=[0-9a-zA-Z])\\s*le\\s*(?=[0-9a-zA-Z])/g, ' \\\\le ')
-            .replace(/(?<=[0-9a-zA-Z])\\s*ge\\s*(?=[0-9a-zA-Z])/g, ' \\\\ge ');
+            .replace(/[\t\s]?ext"/g, '\\\\text{"')
+            .replace(/(?<!\\\\)equiv(?=\s)/g, '\\\\equiv')
+            .replace(/(?<!\\\\)exists(?=\s|[a-zA-Z0-9_{}()])/g, '\\\\exists ')
+            .replace(/(?<!\\\\)mathbb\{([A-Z])\}/g, '\\\\mathbb{$1}')
+            .replace(/(?<=[0-9a-zA-Z])\s*le\s*(?=[0-9a-zA-Z])/g, ' \\\\le ')
+            .replace(/(?<=[0-9a-zA-Z])\s*ge\s*(?=[0-9a-zA-Z])/g, ' \\\\ge ');
         }
       }
 
@@ -1307,6 +1353,7 @@ ${renderedSlidesHtml}
     a.download = 'bai-giang-slide.html';
     a.click();
   };
+  /* eslint-enable no-useless-escape */
 
   const downloadPPTX = async () => {
     try {
@@ -1496,6 +1543,7 @@ ${renderedSlidesHtml}
                 {slides.map((slide, index) => (
                   <div
                     key={slide.id}
+                    data-slide-index={index}
                     className={`absolute inset-0 p-6 sm:p-8 md:p-10 flex flex-col justify-start gap-3 sm:gap-5 transition-all duration-500 overflow-y-auto ${
                       isFullscreen ? 'slide-fullscreen' : ''
                     } ${index === currentSlide ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}`}
