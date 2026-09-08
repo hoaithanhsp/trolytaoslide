@@ -689,7 +689,6 @@ Keyword box:
 - <span class="keyword-green">từ khóa xanh lá</span>
 - <span class="keyword-orange">từ khóa cam</span>
 
-In đậm nhấn mạnh:
 - <span class="emphasis">in đậm xanh</span>
 - <span class="emphasis-red">in đậm đỏ</span>
 
@@ -720,13 +719,26 @@ QUY TẮC CẤU TRÚC VÀ BỐ CỤC BỘ SLIDE (THEO CHUẨN SƯ PHẠM):
    - Bên trái là Định nghĩa/Quy tắc đóng khung trong <div class="box">, bên phải là Ví dụ đối chiếu, bảng phân tích hoặc bài toán áp dụng.
    - Các ô/box trong từng cột cần có nội dung chi tiết, mở rộng chiều cao hài hòa, không để trống trải.
 6. Slide Trắc nghiệm / Tương tác củng cố / Mini-Quiz:
-   - Chứa câu hỏi trắc nghiệm hoặc bài tập vận dụng nhanh với các phương án A, B, C, D rõ ràng.
-   - Kèm phần giải thích đáp án chi tiết, tường minh (Feedback/Explanation).
-   - ĐẶC BIỆT: Trong phần giải thích đáp án, MỌI công thức toán, biến số, phép suy luận BẮT BUỘC viết bằng cú pháp LaTeX kẹp trong $...$ hoặc $$...$$ (Ví dụ: $x^2 \\ge 0 \\Rightarrow x^2+1 \\ge 1 > 0$ với mọi $x \\in \\mathbb{R}$).
-   - Nếu có script JavaScript xử lý sự kiện kiểm tra đáp án (onclick): sau khi gán innerHTML cho phần giải thích, HÃY GỌI:
-     \`if (window.renderMathContent) window.renderMathContent(feedbackBox); else if (window.MathJax?.typesetPromise) window.MathJax.typesetPromise([feedbackBox]);\`
+   - Chứa câu hỏi trắc nghiệm hoặc bài tập vận dụng với các phương án A, B, C, D rõ ràng.
+   - QUY TẮC BẮT BUỘC ĐỂ KHÔNG BỊ LỖI KÝ TỰ TOÁN HỌC & MATHJAX:
+     + MỌI phần Phản hồi & Lời giải chi tiết (Feedback/Explanation) BẮT BUỘC PHẢI ĐƯỢC VIẾT SẴN TRONG THẺ HTML TĨNH:
+       '<div id="feedback-box" class="feedback-box hidden p-4 rounded-xl border border-emerald-300 bg-emerald-50/90 text-slate-800 space-y-2 mt-4" style="display: none;">'
+         '<div class="font-bold text-emerald-700">🎉 CHÍNH XÁC! (Đáp án A)</div>'
+         '<div class="text-sm leading-relaxed">'
+           'Phủ định của ký hiệu $\\forall$ là $\\exists$, và phủ định của bất đẳng thức $>$ là $\\le$.<br>'
+           'Ta có: $\\overline{\\forall x \\in \\mathbb{R}, P(x)} \\equiv \\exists x \\in \\mathbb{R}, \\overline{P(x)}$.<br>'
+           'Do đó: $\\overline{A} = \\text{"}\\exists x \\in \\mathbb{R}, x^2 - x + 1 \\le 0\\text{"}$.'
+         '</div>'
+       '</div>'
+     + TUYỆT ĐỐI KHÔNG DÙNG CHUỖI JAVASCRIPT GÁN innerHTML CHỨA CÔNG THỨC TOÁN (vì ký tự \\forall sẽ bị trình duyệt JavaScript unescape \\f thành ký tự rác hình quân bích ♠orall, \\text thành tab, \\mathbb thành mất gạch chéo!).
+     + Khi học sinh click chọn đáp án hoặc bấm nút "Xác nhận đáp án", script JavaScript CHỈ CẦN mở hiển thị thẻ HTML tĩnh đã viết sẵn:
+       'var fb = document.getElementById("feedback-box"); if (fb) { fb.style.display = "block"; fb.classList.remove("hidden"); if (window.renderMathContent) window.renderMathContent(fb); }'
 7. Slide Tổng kết & Bản đồ tư duy / Dặn dò:
    - Hệ thống hóa các kiến thức cốt lõi và nhiệm vụ học tập về nhà.
+
+QUY TẮC TRÌNH BÀY CÂU VĂN & PHÁT BIỂU TOÁN HỌC (CHỐNG VỠ DÒNG DỌC):
+- Các phát biểu tính chất hoặc biểu thức logic (Ví dụ: "Tính chất trái ngược: $P$ đúng $\\Leftrightarrow \\overline{P}$ sai") BẮT BUỘC phải nằm trọn vẹn trong cùng MỘT thẻ <p> hoặc <div>.
+- TUYỆT ĐỐI KHÔNG chia nhỏ từng ký hiệu $P$, chữ "đúng", $\\Leftrightarrow$, $\\overline{P}$, "sai" thành từng thẻ div hay span riêng rẽ, vì sẽ làm các chữ bị bẻ gãy thành từng hàng dọc xấu xí!
 
 QUY TẮC BỐ CỤC KHÔNG GIAN 16:9 & TRÌNH BÀY (CHỐNG KHOẢNG TRẮNG THỪA):
 - TUYỆT ĐỐI KHÔNG dùng class "mt-auto" hay "my-auto" trên bất kỳ thẻ nào (vì sẽ đẩy toàn bộ nội dung xuống đáy và để lại khoảng trắng lớn ở phía trên).
@@ -859,6 +871,66 @@ export function ensureStepItemsInHtml(html: string): string {
   }
 }
 
+/**
+ * Tự động sửa chữa các lỗi escape ký tự LaTeX phổ biến trong HTML và JavaScript strings:
+ * - Ký tự Form Feed \x0c (hiển thị thành quân bích ♠) đi với "orall" -> khôi phục \forall
+ * - Chuỗi LaTeX bị nuốt dấu gạch chéo ngược: overline{...} -> \overline{...}, mathbb{R} -> \mathbb{R}, v.v.
+ * - Double-escape dấu gạch chéo trong các chuỗi JavaScript gán innerHTML để không bị runtime unescape
+ */
+export function repairLatexAndScriptEscapes(html: string): string {
+  if (!html) return html;
+
+  let fixed = html;
+
+  // 1. Khôi phục ký tự ♠ hoặc Form Feed \x0c bị lỗi từ \forall
+  /* eslint-disable-next-line no-control-regex */
+  fixed = fixed.replace(/[\u000c♠]\s*orall/gi, '\\forall ');
+  /* eslint-disable-next-line no-control-regex */
+  fixed = fixed.replace(/[\u000c♠]\s*forall/gi, '\\forall ');
+  /* eslint-disable-next-line no-control-regex */
+  fixed = fixed.replace(/[\u000c♠]/g, '');
+
+  // 2. Khôi phục các lệnh LaTeX bị mất dấu gạch chéo ngược do JS string unescape
+  // overline{ -> \overline{
+  fixed = fixed.replace(/(?<!\\)overline\{/g, '\\overline{');
+  fixed = fixed.replace(/(?<!\\)overline([A-Z])/g, '\\overline{$1}');
+
+  // ext" -> \text{"
+  fixed = fixed.replace(/[\t\s]?ext"/g, '\\text{"');
+  fixed = fixed.replace(/le0ext"/g, '\\le 0\\text{"}');
+  fixed = fixed.replace(/ge0ext"/g, '\\ge 0\\text{"}');
+
+  // equiv, exists, mathbb, subset, in
+  fixed = fixed.replace(/(?<!\\)equiv(?=\s)/g, '\\equiv');
+  fixed = fixed.replace(/(?<!\\)exists(?=\s|[a-zA-Z0-9_{}()])/g, '\\exists ');
+  fixed = fixed.replace(/(?<!\\)mathbb\{([A-Z])\}/g, '\\mathbb{$1}');
+  fixed = fixed.replace(/(?<!\\)mathbb([A-Z])/g, '\\mathbb{$1}');
+
+  // \le và \ge bị mất gạch chéo trong các chuỗi toán
+  fixed = fixed.replace(/(?<=[0-9a-zA-Z])\s*le\s*(?=[0-9a-zA-Z])/g, ' \\le ');
+  fixed = fixed.replace(/(?<=[0-9a-zA-Z])\s*ge\s*(?=[0-9a-zA-Z])/g, ' \\ge ');
+
+  // 3. Xử lý các thẻ <script>: nếu có code gán innerHTML bằng chuỗi có công thức LaTeX
+  // thì escape các dấu gạch chéo đơn thành kép để không bị JS unescape khi chạy
+  fixed = fixed.replace(/<script\b[^>]*>([\s\S]*?)<\/script>/gi, (_match, scriptBody) => {
+    const latexCommands = [
+      'forall', 'exists', 'mathbb', 'overline', 'text', 'le', 'ge', 'equiv',
+      'in', 'Rightarrow', 'Leftrightarrow', 'Delta', 'alpha', 'beta', 'pi',
+      'ne', 'subset', 'cup', 'cap', 'infty', 'sum', 'int', 'frac', 'sqrt'
+    ];
+
+    let safeBody = scriptBody;
+    latexCommands.forEach((cmd) => {
+      const regex = new RegExp(`(?<!\\\\)\\\\${cmd}\\b`, 'g');
+      safeBody = safeBody.replace(regex, `\\\\${cmd}`);
+    });
+
+    return `<script>${safeBody}</script>`;
+  });
+
+  return fixed;
+}
+
 // ==========================================
 // 10. GENERATE OUTLINE (ĐI QUA FALLBACK CHUNG)
 // ==========================================
@@ -979,6 +1051,9 @@ export async function generateSlides(
 
     // Tự động chuẩn hóa hiệu ứng xuất hiện từng dòng (step-item reveal) cho các slide
     cleanedHtml = ensureStepItemsInHtml(cleanedHtml);
+
+    // Tự động sửa chữa các lỗi escape ký tự toán học LaTeX
+    cleanedHtml = repairLatexAndScriptEscapes(cleanedHtml);
 
     // Step 3: Hoàn tất định dạng
     onProgress?.({

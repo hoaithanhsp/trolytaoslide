@@ -7,7 +7,7 @@ import { AIInputPanel } from './AIInputPanel';
 import { defaultSlides } from '../data/slides';
 import { useApiKey } from '../hooks/useApiKey';
 import { generatePptx, generatePptxWithMath, filterSlidesForPptx } from '../services/pptxService';
-import { ensureStepItemsInHtml } from '../services/geminiService';
+import { ensureStepItemsInHtml, repairLatexAndScriptEscapes } from '../services/geminiService';
 
 declare global {
   interface Window {
@@ -280,7 +280,16 @@ export function SlidePresentation() {
       const target = e.target as HTMLElement;
       const interactive = target.closest('button, .btn, [onclick], input, textarea, select, label, a, [role="button"], .sim-controls');
       if (interactive) {
-        setTimeout(scheduleMathJax, 60);
+        setTimeout(() => {
+          // Tự động kiểm tra và sửa lỗi ký tự escape trong feedback nếu có
+          const feedbackEls = container.querySelectorAll('[id*="feedback"], [class*="feedback"], [id*="giai-thich"], .explanation, .solution');
+          feedbackEls.forEach((fb) => {
+            if (fb.innerHTML && (fb.innerHTML.includes('♠') || fb.innerHTML.includes('orall') || fb.innerHTML.includes('overline{') || fb.innerHTML.includes('ext"'))) {
+              fb.innerHTML = repairLatexAndScriptEscapes(fb.innerHTML);
+            }
+          });
+          scheduleMathJax();
+        }, 50);
         setTimeout(scheduleMathJax, 200);
         return;
       }
@@ -341,8 +350,9 @@ export function SlidePresentation() {
   };
 
   const handleSlidesGenerated = (slidesHtml: string) => {
-    // Chuẩn hóa đảm bảo các slide nội dung đều có step-item
-    const normalizedHtml = ensureStepItemsInHtml(slidesHtml);
+    // Sửa lỗi escape ký tự toán học và chuẩn hóa step-item
+    const repairedHtml = repairLatexAndScriptEscapes(slidesHtml);
+    const normalizedHtml = ensureStepItemsInHtml(repairedHtml);
 
     // Update editor content
     setEditorContent(normalizedHtml);
@@ -391,7 +401,8 @@ export function SlidePresentation() {
 
     const renderedSlidesHtml = slides
       .map((s, idx) => {
-        const processedContent = idx === 0 ? s.content : ensureStepItemsInHtml(s.content);
+        const repairedContent = repairLatexAndScriptEscapes(s.content);
+        const processedContent = idx === 0 ? repairedContent : ensureStepItemsInHtml(repairedContent);
         return `      <!-- ==================== SLIDE ${idx + 1}: ${s.title.replace(/</g, '&lt;')} ==================== -->
       <section class="slide-page absolute inset-0 p-6 sm:p-8 md:p-10 lg:p-12 flex flex-col justify-start gap-4 sm:gap-6 overflow-y-auto bg-white text-slate-800 transition-all duration-300 ${
         idx === 0 ? 'active' : ''
@@ -577,13 +588,21 @@ export function SlidePresentation() {
     }
 
     .slide-page > .grid > div > div,
-    .slide-page > [class*="grid"] > div > div,
-    .slide-page .step-item {
-      flex: 1 1 0% !important;
-      min-height: 0 !important;
-      display: flex !important;
-      flex-direction: column !important;
-      justify-content: center !important;
+    .slide-page > [class*="grid"] > div > div {
+      min-height: 0;
+    }
+
+    /* Đảm bảo công thức toán học hiển thị mượt mà trên cùng dòng, không bị ngắt dòng co cụm */
+    .slide-page mjx-container,
+    .slide-page mjx-container[jax="CHTML"] {
+      display: inline-block !important;
+      margin: 0 0.15em !important;
+      white-space: nowrap !important;
+      vertical-align: baseline !important;
+    }
+
+    .slide-page .katex {
+      white-space: nowrap !important;
     }
 
     /* Typography cân xứng, to rõ ràng cho bài giảng */
@@ -962,6 +981,23 @@ ${renderedSlidesHtml}
     }
 
     function renderMathContent(element) {
+      if (element && element.innerHTML) {
+        if (element.innerHTML.indexOf('♠') !== -1 || element.innerHTML.indexOf('orall') !== -1 || element.innerHTML.indexOf('overline{') !== -1 || element.innerHTML.indexOf('ext"') !== -1) {
+          element.innerHTML = element.innerHTML
+            .replace(/[\\u000c♠]\\s*orall/gi, '\\\\forall ')
+            .replace(/[\\u000c♠]\\s*forall/gi, '\\\\forall ')
+            .replace(/[\\u000c♠]/g, '')
+            .replace(/(?<!\\\\)overline\\{/g, '\\\\overline{')
+            .replace(/(?<!\\\\)overline([A-Z])/g, '\\\\overline{$1}')
+            .replace(/[\\t\\s]?ext"/g, '\\\\text{"')
+            .replace(/(?<!\\\\)equiv(?=\\s)/g, '\\\\equiv')
+            .replace(/(?<!\\\\)exists(?=\\s|[a-zA-Z0-9_{}()])/g, '\\\\exists ')
+            .replace(/(?<!\\\\)mathbb\\{([A-Z])\\}/g, '\\\\mathbb{$1}')
+            .replace(/(?<=[0-9a-zA-Z])\\s*le\\s*(?=[0-9a-zA-Z])/g, ' \\\\le ')
+            .replace(/(?<=[0-9a-zA-Z])\\s*ge\\s*(?=[0-9a-zA-Z])/g, ' \\\\ge ');
+        }
+      }
+
       // Ưu tiên KaTeX auto-render nếu có
       if (window.renderMathInElement && element) {
         try {

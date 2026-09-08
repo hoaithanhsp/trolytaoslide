@@ -312,14 +312,23 @@ body {
   gap: 1rem !important;
 }
 
-/* Các box/card con trong cột tự động chia sẻ chiều cao để lấp đầy cột */
+/* Tự động kéo dãn box/card trong cột một cách tự nhiên, KHÔNG ép flex-column làm vỡ dòng chữ */
 .glass-light .grid > div > div,
 .glass-light [class*="grid"] > div > div {
-  flex: 1 1 0% !important;
-  min-height: 0 !important;
-  display: flex !important;
-  flex-direction: column !important;
-  justify-content: center !important;
+  min-height: 0;
+}
+
+/* Đảm bảo công thức toán học hiển thị mượt mà trên cùng dòng, không bị ngắt dòng co cụm */
+.glass-light mjx-container,
+.glass-light mjx-container[jax="CHTML"] {
+  display: inline-block !important;
+  margin: 0 0.15em !important;
+  white-space: nowrap !important;
+  vertical-align: baseline !important;
+}
+
+.glass-light .katex {
+  white-space: nowrap !important;
 }
 
 /* Hiệu ứng xuất hiện từng bước (Step-by-step reveal) trong Preview */
