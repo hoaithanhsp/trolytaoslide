@@ -30,7 +30,7 @@ import {
   Lightbulb,
   Paperclip
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Toaster, toast } from 'sonner';
 
 import { ApiKeyModal } from './components/ApiKeyModal';

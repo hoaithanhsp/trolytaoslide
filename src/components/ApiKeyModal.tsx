@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Key, Info, ExternalLink, X, Cpu, Server, Sparkles } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ModelSelector } from './ModelSelector';
 import { AiProvider } from '../types';
 import { 
