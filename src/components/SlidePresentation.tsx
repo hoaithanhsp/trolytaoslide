@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { ChevronLeft, ChevronRight, Code2, Maximize2, Minimize2, Download, Sparkles, Zap, FileText, Star, FileSliders, Calculator } from 'lucide-react';
 import { CodeEditor } from './CodeEditor';
 import { Header } from './Header';
@@ -10,6 +10,13 @@ import { generatePptx, generatePptxWithMath } from '../services/pptxService';
 
 declare global {
   interface Window {
+    renderMathInElement?: (
+      element: Element,
+      options?: {
+        delimiters?: Array<{ left: string; right: string; display: boolean }>;
+        throwOnError?: boolean;
+      }
+    ) => void;
     MathJax?: {
       typesetPromise?: (elements?: Element[]) => Promise<void>;
       typeset?: () => void;
@@ -17,6 +24,8 @@ declare global {
         promise?: Promise<void>;
       };
     };
+    renderMathContent?: (element?: Element | null) => void;
+    reRenderMath?: (element?: Element | null) => void;
   }
 }
 
@@ -56,6 +65,26 @@ export function SlidePresentation() {
   }, [isLoaded, hasValidKey]);
 
   useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
+  const nextSlide = useCallback(() => {
+    if (slides.length > 0) {
+      setCurrentSlide((prev) => (prev + 1) % slides.length);
+    }
+  }, [slides.length]);
+
+  const prevSlide = useCallback(() => {
+    if (slides.length > 0) {
+      setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
+    }
+  }, [slides.length]);
+
+  useEffect(() => {
     const handleKeydown = (e: KeyboardEvent) => {
       if (slides.length > 0) {
         if (e.key === 'ArrowRight') nextSlide();
@@ -64,28 +93,35 @@ export function SlidePresentation() {
     };
     window.addEventListener('keydown', handleKeydown);
     return () => window.removeEventListener('keydown', handleKeydown);
-  }, [slides.length]);
+  }, [slides.length, nextSlide, prevSlide]);
 
-  const nextSlide = () => {
-    if (slides.length > 0) {
-      setCurrentSlide((prev) => (prev + 1) % slides.length);
-    }
-  };
-
-  const prevSlide = () => {
-    if (slides.length > 0) {
-      setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
-    }
-  };
-
-  // Kích hoạt MathJax typeset cho slide preview
-  const triggerMathJax = () => {
+  // Kích hoạt KaTeX & MathJax typeset cho slide preview
+  const triggerMathJax = (targetElement?: Element | null) => {
     if (typeof window === 'undefined') return;
-    if (!slideWrapperRef.current) return;
+    const el = targetElement || slideWrapperRef.current;
+    if (!el) return;
 
+    // 1. Render KaTeX tức thời nếu có
+    if (window.renderMathInElement) {
+      try {
+        window.renderMathInElement(el, {
+          delimiters: [
+            { left: '$$', right: '$$', display: true },
+            { left: '$', right: '$', display: false },
+            { left: '\\(', right: '\\)', display: false },
+            { left: '\\[', right: '\\]', display: true },
+          ],
+          throwOnError: false,
+        });
+      } catch (err) {
+        console.warn('KaTeX preview render error:', err);
+      }
+    }
+
+    // 2. Gọi MathJax typesetPromise bổ trợ cho công thức phức tạp
     try {
       if (window.MathJax?.typesetPromise) {
-        window.MathJax.typesetPromise([slideWrapperRef.current]).catch((err) => {
+        window.MathJax.typesetPromise([el]).catch((err) => {
           console.warn('MathJax preview typeset warning:', err);
         });
       } else if (window.MathJax?.typeset) {
@@ -95,6 +131,78 @@ export function SlidePresentation() {
       console.warn('MathJax preview typeset error:', e);
     }
   };
+
+  // Cung cấp hàm toàn cục cho các script tương tác inline trong slide
+  useEffect(() => {
+    window.renderMathContent = (el?: Element | null) => triggerMathJax(el);
+    window.reRenderMath = (el?: Element | null) => triggerMathJax(el);
+  }, []);
+
+  // Tự động lắng nghe thay đổi DOM (như khi click hiện đáp án, đổi innerHTML) để render MathJax ngay lập tức
+  useEffect(() => {
+    if (!slideWrapperRef.current) return;
+    const container = slideWrapperRef.current;
+
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    const scheduleMathJax = () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        triggerMathJax(container);
+      }, 50);
+    };
+
+    const observer = new MutationObserver((mutations) => {
+      const isInternalMathMutation = mutations.every((m) => {
+        const target = m.target as HTMLElement;
+        return (
+          target?.tagName?.toLowerCase()?.startsWith('mjx') ||
+          target?.classList?.contains('MathJax') ||
+          target?.classList?.contains('katex') ||
+          target?.closest?.('mjx-container') ||
+          target?.closest?.('.MathJax') ||
+          target?.closest?.('.katex')
+        );
+      });
+
+      if (!isInternalMathMutation) {
+        scheduleMathJax();
+      }
+    });
+
+    observer.observe(container, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+      attributes: true,
+      attributeFilter: ['class', 'style'],
+    });
+
+    // Lắng nghe click: vừa hỗ trợ render MathJax cho nút tương tác, vừa hỗ trợ click chuột trái để chuyển slide tiếp
+    const handleInteraction = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const interactive = target.closest('button, .btn, [onclick], input, textarea, select, label, a, [role="button"], .sim-controls');
+      if (interactive) {
+        setTimeout(scheduleMathJax, 60);
+        setTimeout(scheduleMathJax, 200);
+        return;
+      }
+
+      // Nếu click chuột trái trên slide (không chạm nút tương tác và không mở editor) -> chuyển tiếp slide
+      if (e.button === 0 && !isEditorOpen) {
+        const sel = window.getSelection();
+        if (sel && sel.toString().trim().length > 0) return;
+        nextSlide();
+      }
+    };
+
+    container.addEventListener('click', handleInteraction);
+
+    return () => {
+      observer.disconnect();
+      container.removeEventListener('click', handleInteraction);
+      if (debounceTimer) clearTimeout(debounceTimer);
+    };
+  }, [currentSlide, slides, isEditorOpen, nextSlide]);
 
   // Re-typeset mỗi khi currentSlide, slides hoặc editor thay đổi
   useEffect(() => {
@@ -182,7 +290,7 @@ export function SlidePresentation() {
     const renderedSlidesHtml = slides
       .map((s, idx) => {
         return `      <!-- ==================== SLIDE ${idx + 1}: ${s.title.replace(/</g, '&lt;')} ==================== -->
-      <section class="slide-page absolute inset-0 p-6 sm:p-10 md:p-12 flex flex-col justify-between overflow-y-auto bg-white text-slate-800 transition-all duration-300 ${
+      <section class="slide-page absolute inset-0 p-6 sm:p-8 md:p-10 lg:p-12 flex flex-col justify-start gap-4 sm:gap-6 overflow-y-auto bg-white text-slate-800 transition-all duration-300 ${
         idx === 0 ? 'active' : ''
       }" data-slide="${idx + 1}" style="${
           idx === 0
@@ -249,10 +357,17 @@ export function SlidePresentation() {
       font-family: 'Be Vietnam Pro', sans-serif;
     }
 
-    /* 16:9 Presentation Stage */
+    /* 16:9 Presentation Stage - Tự động bung tối đa theo tỉ lệ 16:9 trên màn hình */
     .slide-viewport {
+      width: 100%;
+      max-width: calc((100vh - 76px) * 16 / 9);
+      max-height: calc(100vh - 76px);
       aspect-ratio: 16 / 9;
-      max-height: calc(100vh - 84px);
+    }
+    :fullscreen .slide-viewport,
+    :-webkit-full-screen .slide-viewport {
+      max-width: calc((100vh - 66px) * 16 / 9);
+      max-height: calc(100vh - 66px);
     }
 
     /* Glassmorphism Styles */
@@ -309,53 +424,155 @@ export function SlidePresentation() {
       letter-spacing: 0.02em;
     }
 
-    /* Content styling elements */
+    /* Content styling elements & Dynamic Vertical Distribution */
+    .slide-page > h1,
+    .slide-page > h2,
+    .slide-page > .header-badge {
+      flex-shrink: 0;
+      margin-bottom: 0;
+    }
+
+    /* Triệt tiêu hoàn toàn margin-top: auto và my-auto để không bị đẩy nội dung xuống đáy slide */
+    .slide-page .my-auto,
+    .slide-page .mt-auto,
+    .slide-page [class*="my-auto"],
+    .slide-page [class*="mt-auto"] {
+      margin-top: 0.5rem !important;
+      margin-bottom: 0.5rem !important;
+    }
+
+    /* Tự động kéo dãn nội dung lấp đầy không gian slide, không để khoảng trống lớn ở giữa */
+    .slide-page > .grid,
+    .slide-page > [class*="grid"],
+    .slide-page > .two-columns,
+    .slide-page > .content-wrapper,
+    .slide-page > .simulation,
+    .slide-page > ul,
+    .slide-page > ol {
+      flex: 1 1 0% !important;
+      min-height: 0 !important;
+    }
+
+    .slide-page > .grid,
+    .slide-page > [class*="grid"] {
+      display: grid !important;
+      align-content: stretch !important;
+      align-items: stretch !important;
+      gap: 1.5rem !important;
+      margin-top: 0.5rem !important;
+      margin-bottom: 0.25rem !important;
+    }
+
+    .slide-page > .grid > div,
+    .slide-page > [class*="grid"] > div {
+      height: 100% !important;
+      min-height: 0 !important;
+      display: flex !important;
+      flex-direction: column !important;
+      justify-content: stretch !important;
+      gap: 1rem !important;
+    }
+
+    .slide-page > .grid > div > div,
+    .slide-page > [class*="grid"] > div > div,
+    .slide-page .step-item {
+      flex: 1 1 0% !important;
+      min-height: 0 !important;
+      display: flex !important;
+      flex-direction: column !important;
+      justify-content: center !important;
+    }
+
+    /* Typography cân xứng, to rõ ràng cho bài giảng */
     .slide-page h1 {
-      font-size: 2.8rem;
+      font-size: clamp(2.2rem, 3.4vw, 3.2rem);
       font-weight: 800;
       line-height: 1.25;
       color: #0f172a;
-      margin-bottom: 1rem;
+      margin-bottom: 0.5rem;
     }
     .slide-page h2 {
-      font-size: 2.1rem;
+      font-size: clamp(1.75rem, 2.5vw, 2.4rem);
       font-weight: 700;
       line-height: 1.3;
-      color: #1e3a8a;
-      margin-bottom: 1.25rem;
-      border-bottom: 3px solid #38bdf8;
+      color: #0d9488;
+      margin-bottom: 0.5rem;
+      border-bottom: 3px solid #14b8a6;
       display: inline-block;
-      padding-bottom: 6px;
+      padding-bottom: 4px;
     }
     .slide-page h3 {
-      font-size: 1.4rem;
+      font-size: clamp(1.3rem, 1.8vw, 1.65rem);
       font-weight: 700;
       color: #1e293b;
-      margin-bottom: 0.75rem;
+      margin-bottom: 0.5rem;
     }
     .slide-page ul, .slide-page ol {
-      font-size: 1.15rem;
+      font-size: clamp(1.2rem, 1.5vw, 1.45rem);
       line-height: 1.8;
       padding-left: 1.75rem;
-      margin-bottom: 1rem;
+      margin-bottom: 0.75rem;
     }
     .slide-page li {
       margin-bottom: 0.5rem;
     }
     .slide-page p {
-      font-size: 1.15rem;
+      font-size: clamp(1.2rem, 1.5vw, 1.45rem);
       line-height: 1.75;
-      margin-bottom: 1rem;
+      margin-bottom: 0.75rem;
     }
 
-    .box, [style*="border-left"] {
+    /* Bảng chân lý / Bảng dữ liệu Toán học */
+    .slide-page table {
+      width: 100% !important;
+      font-size: clamp(1.05rem, 1.3vw, 1.25rem) !important;
+      margin: 0.5rem 0 !important;
+    }
+
+    .slide-page th {
+      padding: 10px 14px !important;
+      font-size: clamp(1.1rem, 1.35vw, 1.25rem) !important;
+      font-weight: 700 !important;
+    }
+
+    .slide-page td {
+      padding: 10px 14px !important;
+      font-size: clamp(1.05rem, 1.3vw, 1.2rem) !important;
+    }
+
+    /* Override các cỡ chữ nhỏ trong slide bài giảng */
+    .slide-page .text-xs,
+    .slide-page [class*="text-[10px]"],
+    .slide-page [class*="text-[11px]"] {
+      font-size: clamp(0.95rem, 1.2vw, 1.15rem) !important;
+      line-height: 1.6 !important;
+    }
+
+    .slide-page .text-sm {
+      font-size: clamp(1.1rem, 1.35vw, 1.25rem) !important;
+      line-height: 1.65 !important;
+    }
+
+    .slide-page .text-base {
+      font-size: clamp(1.2rem, 1.5vw, 1.4rem) !important;
+      line-height: 1.7 !important;
+    }
+
+    .slide-page button {
+      font-size: clamp(1.05rem, 1.3vw, 1.2rem) !important;
+      padding: 10px 22px !important;
+      font-weight: 700 !important;
+    }
+
+    .box, [style*="border-left"], [class*="border-l-"] {
       background: linear-gradient(135deg, #f0fdfa 0%, #ccfbf1 100%) !important;
-      border-left: 4px solid #14b8a6 !important;
-      padding: 16px 20px;
-      border-radius: 0 10px 10px 0;
-      margin: 14px 0;
+      border-left: 5px solid #14b8a6 !important;
+      padding: clamp(14px, 1.8vw, 22px) !important;
+      border-radius: 0 12px 12px 0;
+      margin: 10px 0;
       color: #0f172a !important;
-      box-shadow: 0 4px 12px rgba(20, 184, 166, 0.12);
+      font-size: clamp(1.15rem, 1.4vw, 1.35rem);
+      box-shadow: 0 4px 14px rgba(20, 184, 166, 0.14);
     }
 
     /* Text emphasis helper classes */
@@ -433,8 +650,7 @@ export function SlidePresentation() {
     </div>
   </div>
 
-  <!-- Main Presentation Container (16:9 Stage) -->
-  <main class="w-full max-w-[1360px] p-2 sm:p-4 flex-1 flex flex-col items-center justify-center min-h-0">
+  <main class="w-full h-full p-2 sm:p-3 flex-1 flex flex-col items-center justify-center min-h-0">
     <div id="slide-stage" class="slide-viewport w-full bg-slate-900 rounded-3xl shadow-2xl overflow-hidden relative flex flex-col border border-slate-800/80">
 ${renderedSlidesHtml}
     </div>
@@ -461,7 +677,7 @@ ${renderedSlidesHtml}
 
     <!-- Center Primary Action: Dòng Tiếp Button & Step Indicator -->
     <div class="flex items-center gap-2">
-      <button onclick="nextStepOrSlide()" class="px-4 sm:px-5 py-2 rounded-xl bg-gradient-to-r from-teal-500 via-indigo-600 to-teal-600 hover:from-teal-600 hover:to-indigo-700 text-white font-bold transition-all shadow-lg shadow-teal-500/25 flex items-center gap-2 active:scale-95 border border-white/20" title="Hiện dòng tiếp / Trang tiếp (Space / Enter / Mũi tên Xuống)">
+      <button onclick="nextStepOrSlide()" class="px-4 sm:px-5 py-2 rounded-xl bg-gradient-to-r from-teal-500 via-indigo-600 to-teal-600 hover:from-teal-600 hover:to-indigo-700 text-white font-bold transition-all shadow-lg shadow-teal-500/25 flex items-center gap-2 active:scale-95 border border-white/20" title="Hiện dòng tiếp / Trang tiếp (Click chuột trái trên slide / Space / Enter / Mũi tên Xuống)">
         <span>Dòng Tiếp</span>
         <i class="fa-solid fa-forward-step text-xs"></i>
       </button>
@@ -875,6 +1091,63 @@ ${renderedSlidesHtml}
       }, { passive: true });
     }
 
+    // Cung cấp hàm toàn cục cho các hàm kiểm tra đáp án inline trong slide
+    window.renderMathContent = renderMathContent;
+    window.reRenderMath = renderMathContent;
+
+    // Tự động lắng nghe thay đổi DOM (như khi click hiện đáp án, đổi innerHTML) để render MathJax ngay lập tức
+    if (stage && window.MutationObserver) {
+      let mathTimer = null;
+      const mathObserver = new MutationObserver(function(mutations) {
+        const isInternalMath = mutations.every(function(m) {
+          const t = m.target;
+          return t && (
+            (t.tagName && t.tagName.toLowerCase().startsWith('mjx')) ||
+            (t.classList && (t.classList.contains('MathJax') || t.classList.contains('katex'))) ||
+            (t.closest && (t.closest('mjx-container') || t.closest('.MathJax') || t.closest('.katex')))
+          );
+        });
+        if (!isInternalMath) {
+          clearTimeout(mathTimer);
+          mathTimer = setTimeout(function() {
+            renderMathContent(stage);
+          }, 50);
+        }
+      });
+
+      mathObserver.observe(stage, {
+        childList: true,
+        subtree: true,
+        characterData: true,
+        attributes: true,
+        attributeFilter: ['class', 'style']
+      });
+
+      // Xử lý click trên slide: Click chuột trái bất kỳ đâu trên slide để hiện "Dòng Tiếp" / Sang slide tiếp (giống PowerPoint)
+      stage.addEventListener('click', function(e) {
+        // Chỉ xử lý click chuột trái (button === 0)
+        if (e.button !== 0) return;
+
+        // Nếu click vào phần tử tương tác (button, input, controls, link...)
+        const interactiveEl = e.target.closest('button, .btn, [onclick], input, textarea, select, label, a, .sim-controls, [role="button"]');
+        if (interactiveEl) {
+          // Kích hoạt re-render công thức toán nếu tương tác làm thay đổi nội dung
+          setTimeout(function() { renderMathContent(stage); }, 60);
+          setTimeout(function() { renderMathContent(stage); }, 200);
+          return;
+        }
+
+        // Bỏ qua nếu người dùng đang bôi đen chọn văn bản
+        const sel = window.getSelection();
+        if (sel && sel.toString().trim().length > 0) {
+          return;
+        }
+
+        // Kích hoạt Dòng Tiếp / Chuyển Slide
+        nextStepOrSlide();
+      });
+    }
+
     // Khởi tạo ban đầu
     window.addEventListener('load', () => {
       updateSlideView();
@@ -1067,18 +1340,24 @@ ${renderedSlidesHtml}
           {slides.length === 0 ? (
             <WelcomeScreen />
           ) : (
-            <div className="relative w-full h-full flex items-center justify-center p-4">
-              {/* Slide Container - Editable */}
+            <div className="relative w-full h-full flex items-center justify-center p-2 sm:p-4">
+              {/* Slide Container - Tự động co giãn theo tỉ lệ 16:9 linh hoạt */}
               <div
                 ref={slideWrapperRef}
-                className={`w-full ${isEditorOpen ? 'max-w-2xl' : 'max-w-5xl'} aspect-video glass-light rounded-2xl shadow-2xl overflow-hidden relative animate-fadeIn`}
+                className={`w-full aspect-video glass-light rounded-2xl shadow-2xl overflow-hidden relative animate-fadeIn transition-all duration-300 ${
+                  isFullscreen
+                    ? 'max-w-[min(calc(100vw-32px),calc((100vh-48px)*16/9))] max-h-[calc(100vh-48px)]'
+                    : isEditorOpen
+                    ? 'max-w-2xl'
+                    : 'max-w-[min(calc(100vw-48px),calc((100vh-130px)*16/9))] max-h-[calc(100vh-130px)]'
+                }`}
               >
                 {slides.map((slide, index) => (
                   <div
                     key={slide.id}
-                    className={`absolute inset-0 p-8 md:p-12 flex flex-col justify-center transition-all duration-500 overflow-y-auto
-                      ${index === currentSlide ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}
-                    `}
+                    className={`absolute inset-0 p-6 sm:p-8 md:p-10 flex flex-col justify-start gap-3 sm:gap-5 transition-all duration-500 overflow-y-auto ${
+                      isFullscreen ? 'slide-fullscreen' : ''
+                    } ${index === currentSlide ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}`}
                     dangerouslySetInnerHTML={{ __html: slide.content }}
                   />
                 ))}

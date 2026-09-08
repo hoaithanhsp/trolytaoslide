@@ -198,19 +198,38 @@ body {
   border: 1px solid rgba(94, 234, 212, 0.15);
 }
 
+/* ==========================================================================
+   Slide Preview Styles - Tự động lấp đầy 16:9, triệt tiêu khoảng trắng thừa
+   ========================================================================== */
 .glass-light {
   background: #ffffff;
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(20, 184, 166, 0.2);
   box-shadow: 0 8px 32px rgba(15, 118, 110, 0.2);
+  font-size: clamp(1.15rem, 1.4vw, 1.35rem);
 }
 
-/* Slide Preview Styles - Nền trắng chữ đen */
-.glass-light h1,
+/* Tiêu đề slide */
+.glass-light h1 {
+  color: #0d9488 !important;
+  font-size: clamp(2rem, 3vw, 2.8rem) !important;
+  font-weight: 800;
+  line-height: 1.25;
+  margin-bottom: 0.5rem;
+  flex-shrink: 0;
+}
+
 .glass-light h2 {
   color: #0d9488 !important;
-  margin-bottom: 20px;
+  font-size: clamp(1.6rem, 2.3vw, 2.2rem) !important;
+  font-weight: 700;
+  line-height: 1.3;
+  margin-bottom: 0.5rem;
+  border-bottom: 3px solid #14b8a6;
+  display: inline-block;
+  padding-bottom: 4px;
+  flex-shrink: 0;
 }
 
 .glass-light h3,
@@ -218,14 +237,22 @@ body {
 .glass-light h5,
 .glass-light h6 {
   color: #115e59 !important;
-  margin-bottom: 16px;
+  font-size: clamp(1.25rem, 1.65vw, 1.55rem) !important;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
 }
 
 .glass-light p,
 .glass-light li,
 .glass-light span,
 .glass-light div {
-  color: #1e293b !important;
+  color: #1e293b;
+}
+
+.glass-light p,
+.glass-light li {
+  font-size: clamp(1.15rem, 1.4vw, 1.35rem) !important;
+  line-height: 1.7;
 }
 
 .glass-light ul,
@@ -249,20 +276,162 @@ body {
   color: #115e59 !important;
 }
 
+/* Triệt tiêu hoàn toàn margin-top: auto và my-auto để không bị đẩy nội dung xuống đáy slide */
+.glass-light .my-auto,
+.glass-light .mt-auto,
+.glass-light [class*="my-auto"],
+.glass-light [class*="mt-auto"] {
+  margin-top: 0.5rem !important;
+  margin-bottom: 0.5rem !important;
+}
+
+/* Kéo dãn các container nội dung (grid, two-columns, box) để lấp đầy không gian slide */
+.glass-light .grid,
+.glass-light [class*="grid"],
+.glass-light .two-columns,
+.glass-light .content-wrapper,
+.glass-light .simulation {
+  flex: 1 1 0% !important;
+  min-height: 0 !important;
+  display: grid !important;
+  align-content: stretch !important;
+  align-items: stretch !important;
+  gap: 1.25rem !important;
+  margin-top: 0.5rem !important;
+  margin-bottom: 0.25rem !important;
+}
+
+/* Từng cột trong grid kéo dãn chiều cao và phân bổ các card/box đồng đều */
+.glass-light .grid > div,
+.glass-light [class*="grid"] > div {
+  height: 100% !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: stretch !important;
+  gap: 1rem !important;
+}
+
+/* Các box/card con trong cột tự động chia sẻ chiều cao để lấp đầy cột */
+.glass-light .grid > div > div,
+.glass-light [class*="grid"] > div > div,
+.glass-light .step-item {
+  flex: 1 1 0% !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+}
+
 /* Box styling trong preview */
 .glass-light .box,
-.glass-light [style*="border-left"] {
+.glass-light [style*="border-left"],
+.glass-light [class*="border-l-"] {
   background: linear-gradient(135deg, #f0fdfa 0%, #ccfbf1 100%) !important;
-  border-left: 4px solid #14b8a6 !important;
-  padding: 16px 20px;
-  border-radius: 0 8px 8px 0;
+  border-left: 5px solid #14b8a6 !important;
+  padding: clamp(14px, 1.8vw, 22px) !important;
+  border-radius: 0 12px 12px 0;
   color: #1e293b !important;
+  font-size: clamp(1.15rem, 1.4vw, 1.35rem) !important;
+  box-shadow: 0 4px 14px rgba(20, 184, 166, 0.12);
+}
+
+/* Bảng chân lý / Bảng dữ liệu Toán học */
+.glass-light table {
+  width: 100% !important;
+  font-size: clamp(1.05rem, 1.3vw, 1.25rem) !important;
+  margin: 0.5rem 0 !important;
+}
+
+.glass-light th {
+  padding: 10px 14px !important;
+  font-size: clamp(1.1rem, 1.35vw, 1.25rem) !important;
+  font-weight: 700 !important;
+}
+
+.glass-light td {
+  padding: 10px 14px !important;
+  font-size: clamp(1.05rem, 1.3vw, 1.2rem) !important;
+}
+
+/* Override các class cỡ chữ nhỏ của Tailwind để chữ trên slide to rõ ràng */
+.glass-light .text-xs,
+.glass-light .text-\[10px\],
+.glass-light .text-\[11px\],
+.glass-light [class*="text-\[10px\]"],
+.glass-light [class*="text-\[11px\]"] {
+  font-size: clamp(0.95rem, 1.2vw, 1.15rem) !important;
+  line-height: 1.6 !important;
+}
+
+.glass-light .text-sm {
+  font-size: clamp(1.1rem, 1.35vw, 1.25rem) !important;
+  line-height: 1.65 !important;
+}
+
+.glass-light .text-base {
+  font-size: clamp(1.2rem, 1.5vw, 1.4rem) !important;
+  line-height: 1.7 !important;
+}
+
+/* Nút bấm tương tác / mô phỏng */
+.glass-light button {
+  font-size: clamp(1.05rem, 1.3vw, 1.2rem) !important;
+  padding: 10px 22px !important;
+  font-weight: 700 !important;
+}
+
+/* ==========================================================================
+   Khi mở rộng toàn màn hình: tăng tỷ lệ font chữ và padding để bài giảng to rõ
+   ========================================================================== */
+.slide-fullscreen {
+  font-size: clamp(1.25rem, 1.6vw, 1.5rem) !important;
+}
+.slide-fullscreen h1 {
+  font-size: clamp(2.4rem, 3.8vw, 3.4rem) !important;
+}
+.slide-fullscreen h2 {
+  font-size: clamp(1.9rem, 2.7vw, 2.5rem) !important;
+}
+.slide-fullscreen h3 {
+  font-size: clamp(1.4rem, 1.9vw, 1.8rem) !important;
+}
+.slide-fullscreen p,
+.slide-fullscreen li {
+  font-size: clamp(1.25rem, 1.6vw, 1.5rem) !important;
+  line-height: 1.8;
+}
+.slide-fullscreen .box,
+.slide-fullscreen [style*="border-left"],
+.slide-fullscreen [class*="border-l-"] {
+  padding: 22px 28px !important;
+  font-size: clamp(1.2rem, 1.5vw, 1.45rem) !important;
+}
+.slide-fullscreen .text-xs,
+.slide-fullscreen .text-\[10px\],
+.slide-fullscreen .text-\[11px\] {
+  font-size: clamp(1.1rem, 1.35vw, 1.25rem) !important;
+}
+.slide-fullscreen .text-sm {
+  font-size: clamp(1.2rem, 1.45vw, 1.35rem) !important;
+}
+.slide-fullscreen table {
+  font-size: clamp(1.15rem, 1.4vw, 1.35rem) !important;
+}
+.slide-fullscreen th,
+.slide-fullscreen td {
+  padding: 12px 18px !important;
+}
+.slide-fullscreen button {
+  padding: 12px 28px !important;
+  font-size: clamp(1.15rem, 1.4vw, 1.35rem) !important;
 }
 
 /* MathJax trong preview */
 .glass-light .MathJax,
 .glass-light mjx-container {
   color: #1e293b !important;
+  font-size: 1.2em !important;
 }
 
 /* Gradient text - Teal */

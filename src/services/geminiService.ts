@@ -715,15 +715,26 @@ QUY TẮC CẤU TRÚC VÀ BỐ CỤC BỘ SLIDE (THEO CHUẨN SƯ PHẠM):
 4. Slide 2 (Mục tiêu bài học):
    - Trình bày 3 nhóm: 1. Kiến thức trọng tâm, 2. Năng lực số / Năng lực chuyên môn, 3. Phẩm chất & Năng lực chung.
 5. Các Slide Nội dung trọng tâm:
-   - Mỗi slide chỉ từ 4-6 ý/khối nội dung súc tích, tránh nhồi nhét chữ.
-   - Bố cục 2 cột cân đối: Bên trái là Định nghĩa/Quy tắc đóng khung trong <div class="box">, bên phải là Ví dụ đối chiếu, bảng phân tích hoặc bài toán áp dụng.
-6. Slide Trắc nghiệm / Tương tác củng cố (ở cuối trước slide tổng kết):
+   - Trình bày bài giảng khoa học, đầy đủ dẫn chứng, ví dụ thực tế và giải thích chi tiết.
+   - Bố cục 2 cột cân đối lấp đầy slide: sử dụng <div class="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1 items-stretch">.
+   - Bên trái là Định nghĩa/Quy tắc đóng khung trong <div class="box">, bên phải là Ví dụ đối chiếu, bảng phân tích hoặc bài toán áp dụng.
+   - Các ô/box trong từng cột cần có nội dung chi tiết, mở rộng chiều cao hài hòa, không để trống trải.
+6. Slide Trắc nghiệm / Tương tác củng cố / Mini-Quiz:
    - Chứa câu hỏi trắc nghiệm hoặc bài tập vận dụng nhanh với các phương án A, B, C, D rõ ràng.
+   - Kèm phần giải thích đáp án chi tiết, tường minh (Feedback/Explanation).
+   - ĐẶC BIỆT: Trong phần giải thích đáp án, MỌI công thức toán, biến số, phép suy luận BẮT BUỘC viết bằng cú pháp LaTeX kẹp trong $...$ hoặc $$...$$ (Ví dụ: $x^2 \\ge 0 \\Rightarrow x^2+1 \\ge 1 > 0$ với mọi $x \\in \\mathbb{R}$).
+   - Nếu có script JavaScript xử lý sự kiện kiểm tra đáp án (onclick): sau khi gán innerHTML cho phần giải thích, HÃY GỌI:
+     \`if (window.renderMathContent) window.renderMathContent(feedbackBox); else if (window.MathJax?.typesetPromise) window.MathJax.typesetPromise([feedbackBox]);\`
 7. Slide Tổng kết & Bản đồ tư duy / Dặn dò:
    - Hệ thống hóa các kiến thức cốt lõi và nhiệm vụ học tập về nhà.
 
+QUY TẮC BỐ CỤC KHÔNG GIAN 16:9 & TRÌNH BÀY (CHỐNG KHOẢNG TRẮNG THỪA):
+- TUYỆT ĐỐI KHÔNG dùng class "mt-auto" hay "my-auto" trên bất kỳ thẻ nào (vì sẽ đẩy toàn bộ nội dung xuống đáy và để lại khoảng trắng lớn ở phía trên).
+- KHÔNG dùng "justify-between" trên thẻ container chính của slide; hãy dùng bố cục flex-col tự nhiên với flex-1 cho khối nội dung chính.
+- Nội dung các thẻ card, box phải được trình bày thoáng đãng, các bảng biểu và danh sách có đầy đủ thông tin để lấp đầy không gian slide một cách cân xứng.
+
 QUY TẮC ĐẶC BIỆT CHO CÔNG THỨC TOÁN HỌC & KÝ HIỆU KHOA HỌC:
-- MỌI công thức toán, biến số, ký hiệu toán học BẮT BUỘC viết bằng cú pháp LaTeX chuẩn:
+- MỌI công thức toán, biến số, ký hiệu toán học ở TẤT CẢ CÁC VỊ TRÍ (bao gồm: đề bài, các phương án lựa chọn A/B/C/D, và ĐẶC BIỆT LÀ PHẦN GIẢI THÍCH ĐÁP ÁN KHI ĐÚNG/SAI) BẮT BUỘC viết bằng cú pháp LaTeX chuẩn:
   + Công thức trong dòng (inline math): đặt trong cặp dấu $...$ (Ví dụ: $x \\in \\mathbb{R}$, $P(x): "x > 5"$, $\\forall x$, $\\exists y$, $a \\ne 0$).
   + Công thức khối nổi bật (display math): đặt trong cặp dấu $$...$$ (Ví dụ: $$\\Delta = b^2 - 4ac$$, $$\\int_a^b f(x)dx$$).
 - Trình bày các bước giải chi tiết, rõ ràng, dễ đọc.
