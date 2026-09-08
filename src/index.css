@@ -314,13 +314,37 @@ body {
 
 /* Các box/card con trong cột tự động chia sẻ chiều cao để lấp đầy cột */
 .glass-light .grid > div > div,
-.glass-light [class*="grid"] > div > div,
-.glass-light .step-item {
+.glass-light [class*="grid"] > div > div {
   flex: 1 1 0% !important;
   min-height: 0 !important;
   display: flex !important;
   flex-direction: column !important;
   justify-content: center !important;
+}
+
+/* Hiệu ứng xuất hiện từng bước (Step-by-step reveal) trong Preview */
+.glass-light .step-item {
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  opacity: 0 !important;
+  transform: translateY(14px) !important;
+  pointer-events: none !important;
+}
+
+.glass-light .step-item.revealed {
+  opacity: 1 !important;
+  transform: translateY(0) !important;
+  pointer-events: auto !important;
+}
+
+.glass-light .step-item.current-focus {
+  box-shadow: 0 0 0 2px #0d9488, 0 8px 20px -4px rgba(13, 148, 136, 0.3) !important;
+}
+
+/* Riêng slide 1 (Trang bìa) luôn hiển thị trọn vẹn mọi thành phần */
+.glass-light [data-slide-index="0"] .step-item {
+  opacity: 1 !important;
+  transform: none !important;
+  pointer-events: auto !important;
 }
 
 /* Box styling trong preview */

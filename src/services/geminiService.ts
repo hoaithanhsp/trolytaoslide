@@ -740,8 +740,16 @@ QUY TẮC ĐẶC BIỆT CHO CÔNG THỨC TOÁN HỌC & KÝ HIỆU KHOA HỌC:
 - Trình bày các bước giải chi tiết, rõ ràng, dễ đọc.
 - Tuyệt đối không viết công thức dạng ký tự thường như "x thuộc R" hay "delta = b^2 - 4ac", phải dùng $x \\in \\mathbb{R}$, $\\Delta = b^2 - 4ac$.
 
-HIỆU ỨNG TRÌNH CHIẾU TỪNG BƯỚC (STEP-BY-STEP REVEAL):
-- Với các bước giải, từng ý trong danh sách (li), hoặc khối phân tích ví dụ cần hiện lần lượt khi giáo viên giảng, hãy thêm class "step-item" (Ví dụ: <li class="step-item">...</li> hoặc <div class="step-item">...).
+HIỆU ỨNG TRÌNH CHIẾU XUẤT HIỆN TỪNG NỘI DUNG (STEP-BY-STEP REVEAL) - BẮT BUỘC TRÊN TẤT CẢ CÁC SLIDE TỪ SLIDE 2 TRỞ ĐI:
+- YÊU CẦU BẮT BUỘC: Mỗi slide tạo ra TUYỆT ĐỐI KHÔNG ĐƯỢC show ngay hết tất cả các nội dung cùng một lúc!
+- Khi giáo viên mở slide, nội dung ban đầu phải được ẩn và chỉ xuất hiện từng nội dung một theo tiến trình giảng bài khi giáo viên click chuột trái hoặc bấm "Dòng Tiếp".
+- BẮT BUỘC GẮN class "step-item" vào TẤT CẢ các thành phần nội dung sau:
+  + Từng cột hoặc card trong Grid: <div class="step-item p-5 rounded-2xl bg-white ...">...</div>
+  + Từng ý li trong danh sách: <li class="step-item flex items-start gap-2">...</li>
+  + Từng bước giải toán: <div class="step-item p-4 rounded-xl ..."><strong>Bước 1:</strong> ...</div>, <div class="step-item ..."><strong>Bước 2:</strong> ...</div>
+  + Từng hộp định nghĩa / ví dụ đối chiếu: <div class="box step-item ...">...</div>
+  + Từng lựa chọn đáp án trắc nghiệm hoặc khối giải thích kết quả.
+- Đảm bảo mỗi slide (trừ trang bìa) luôn có từ 3 đến 6 phần tử có class "step-item" để trình chiếu từng bước mạch lạc, cuốn hút học sinh!
 
 YÊU CẦU KỸ THUẬT:
 - KHÔNG TẠO THÊM BLOCK <style> - template đã có sẵn toàn bộ CSS cần thiết.
@@ -750,6 +758,106 @@ YÊU CẦU KỸ THUẬT:
 
 CHỈ TRẢ VỀ CÁC THẺ <section class="slide">...</section>, KHÔNG CÓ MARKDOWN HAY GIẢI THÍCH NGOÀI. Bắt đầu ngay với <section class="slide">`;
 };
+
+/**
+ * Tự động đảm bảo mỗi slide nội dung (từ slide 2 trở đi) đều có class "step-item"
+ * để nội dung không bị show hết cùng một lúc mà xuất hiện từng phần mượt mà.
+ */
+export function ensureStepItemsInHtml(html: string): string {
+  if (!html) return html;
+  if (typeof window === 'undefined') return html;
+
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(`<div>${html}</div>`, 'text/html');
+    const root = doc.body.firstElementChild;
+    if (!root) return html;
+
+    let slideElements = Array.from(root.querySelectorAll('.slide, section.slide-page, section[data-slide]'));
+    if (slideElements.length === 0) {
+      // Nếu là nội dung của một slide đơn lẻ không có thẻ section bọc ngoài
+      slideElements = [root as Element];
+    }
+
+    slideElements.forEach((slideEl, slideIndex) => {
+      // Nếu có nhiều slide và đây là slide 1 (Trang bìa - tiêu đề chính nên hiển thị trọn vẹn) -> bỏ qua
+      if (slideElements.length > 1 && slideIndex === 0) return;
+
+      const existingSteps = slideEl.querySelectorAll('.step-item');
+      if (existingSteps.length >= 2) {
+        // Đã có tối thiểu 2 bước reveal trở lên -> đạt chuẩn
+        return;
+      }
+
+      let stepNum = 1;
+
+      // 1. Nếu có lưới Grid (.grid > div hoặc [class*="grid"] > div)
+      const gridColumns = slideEl.querySelectorAll('.grid > div, [class*="grid"] > div');
+      if (gridColumns.length >= 2) {
+        gridColumns.forEach((col) => {
+          const subBoxes = col.querySelectorAll('.box, .card, .glass-card, [class*="rounded-2xl"], [class*="rounded-xl"]');
+          if (subBoxes.length >= 2) {
+            subBoxes.forEach((box) => {
+              box.classList.add('step-item');
+              box.setAttribute('data-step', String(stepNum++));
+            });
+          } else {
+            col.classList.add('step-item');
+            col.setAttribute('data-step', String(stepNum++));
+          }
+        });
+        return;
+      }
+
+      // 2. Nếu có danh sách (ul > li hoặc ol > li)
+      const listItems = slideEl.querySelectorAll('ul > li, ol > li');
+      if (listItems.length >= 2) {
+        listItems.forEach((li) => {
+          li.classList.add('step-item');
+          li.setAttribute('data-step', String(stepNum++));
+        });
+        return;
+      }
+
+      // 3. Nếu có các hộp .box, .card, .math-box
+      const boxes = slideEl.querySelectorAll('.box, .card, .math-box, [class*="border-l-"]');
+      if (boxes.length >= 2) {
+        boxes.forEach((box) => {
+          box.classList.add('step-item');
+          box.setAttribute('data-step', String(stepNum++));
+        });
+        return;
+      }
+
+      // 4. Nếu có các khối div trong container nội dung chính
+      const contentChildren = slideEl.querySelectorAll('.content-wrapper > div, .space-y-4 > div, .space-y-3 > div, .flex-1 > div');
+      if (contentChildren.length >= 2) {
+        contentChildren.forEach((child) => {
+          child.classList.add('step-item');
+          child.setAttribute('data-step', String(stepNum++));
+        });
+        return;
+      }
+
+      // 5. Fallback: gắn cho các phần tử con cấp 1 của slide (loại trừ tiêu đề h1, h2, header)
+      const directChildren = Array.from(slideEl.children).filter((el) => {
+        const tag = el.tagName.toLowerCase();
+        return tag !== 'h1' && tag !== 'h2' && tag !== 'header' && !el.classList.contains('header-badge');
+      });
+      if (directChildren.length >= 2) {
+        directChildren.forEach((child) => {
+          child.classList.add('step-item');
+          child.setAttribute('data-step', String(stepNum++));
+        });
+      }
+    });
+
+    return root.innerHTML;
+  } catch (err) {
+    console.warn('ensureStepItemsInHtml error:', err);
+    return html;
+  }
+}
 
 // ==========================================
 // 10. GENERATE OUTLINE (ĐI QUA FALLBACK CHUNG)
@@ -868,6 +976,9 @@ export async function generateSlides(
     // Loại bỏ các block <style> thừa nếu có
     cleanedHtml = cleanedHtml.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
     cleanedHtml = cleanedHtml.replace(/^\s+/gm, '').trim();
+
+    // Tự động chuẩn hóa hiệu ứng xuất hiện từng dòng (step-item reveal) cho các slide
+    cleanedHtml = ensureStepItemsInHtml(cleanedHtml);
 
     // Step 3: Hoàn tất định dạng
     onProgress?.({

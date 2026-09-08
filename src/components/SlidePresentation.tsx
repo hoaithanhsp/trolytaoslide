@@ -1,12 +1,13 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { ChevronLeft, ChevronRight, Code2, Maximize2, Minimize2, Download, Sparkles, Zap, FileText, Star, FileSliders, Calculator } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Code2, Maximize2, Minimize2, Download, Sparkles, Zap, FileText, Star, FileSliders, Calculator, Eye } from 'lucide-react';
 import { CodeEditor } from './CodeEditor';
 import { Header } from './Header';
 import { ApiKeyModal } from './ApiKeyModal';
 import { AIInputPanel } from './AIInputPanel';
 import { defaultSlides } from '../data/slides';
 import { useApiKey } from '../hooks/useApiKey';
-import { generatePptx, generatePptxWithMath } from '../services/pptxService';
+import { generatePptx, generatePptxWithMath, filterSlidesForPptx } from '../services/pptxService';
+import { ensureStepItemsInHtml } from '../services/geminiService';
 
 declare global {
   interface Window {
@@ -40,6 +41,8 @@ export function SlidePresentation() {
   const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
   const [isAIInputOpen, setIsAIInputOpen] = useState(false);
   const [isExportingMath, setIsExportingMath] = useState(false);
+  const [currentStep, setCurrentStep] = useState<number>(0);
+  const [activeTotalSteps, setActiveTotalSteps] = useState<number>(0);
 
   const slideWrapperRef = useRef<HTMLDivElement>(null);
   const presentationAreaRef = useRef<HTMLDivElement>(null);
@@ -72,28 +75,123 @@ export function SlidePresentation() {
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
 
+  // Chuyển sang slide tiếp theo
   const nextSlide = useCallback(() => {
     if (slides.length > 0) {
       setCurrentSlide((prev) => (prev + 1) % slides.length);
+      setCurrentStep(0);
     }
   }, [slides.length]);
 
+  // Lùi về slide trước đó
   const prevSlide = useCallback(() => {
     if (slides.length > 0) {
       setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
+      setCurrentStep(0);
     }
   }, [slides.length]);
 
+  // Hiện dòng tiếp theo hoặc sang slide tiếp nếu đã hiện hết dòng
+  const nextStepOrSlide = useCallback(() => {
+    if (slides.length === 0) return;
+    if (!slideWrapperRef.current) return;
+
+    const slideDivs = slideWrapperRef.current.querySelectorAll('[data-slide-index]');
+    const activeSlideDiv = slideDivs[currentSlide] as HTMLElement;
+    const steps = (activeSlideDiv && currentSlide !== 0)
+      ? Array.from(activeSlideDiv.querySelectorAll('.step-item'))
+      : [];
+    const totalSteps = steps.length;
+
+    if (currentStep < totalSteps) {
+      setCurrentStep((prev) => prev + 1);
+    } else {
+      if (currentSlide < slides.length - 1) {
+        setCurrentSlide((prev) => prev + 1);
+        setCurrentStep(0);
+      }
+    }
+  }, [currentSlide, currentStep, slides.length]);
+
+  // Lùi lại dòng trước đó hoặc lùi về slide trước
+  const prevStepOrSlide = useCallback(() => {
+    if (slides.length === 0) return;
+
+    if (currentStep > 0) {
+      setCurrentStep((prev) => prev - 1);
+    } else {
+      if (currentSlide > 0) {
+        const prevIdx = currentSlide - 1;
+        setCurrentSlide(prevIdx);
+        if (slideWrapperRef.current && prevIdx !== 0) {
+          const slideDivs = slideWrapperRef.current.querySelectorAll('[data-slide-index]');
+          const prevSlideDiv = slideDivs[prevIdx] as HTMLElement;
+          const prevSteps = prevSlideDiv ? Array.from(prevSlideDiv.querySelectorAll('.step-item')) : [];
+          setCurrentStep(prevSteps.length);
+        } else {
+          setCurrentStep(0);
+        }
+      }
+    }
+  }, [currentSlide, currentStep, slides.length]);
+
+  // Mở toàn bộ nội dung của slide hiện tại
+  const revealAllSteps = useCallback(() => {
+    if (!slideWrapperRef.current || slides.length === 0) return;
+    const slideDivs = slideWrapperRef.current.querySelectorAll('[data-slide-index]');
+    const activeSlideDiv = slideDivs[currentSlide] as HTMLElement;
+    const steps = activeSlideDiv ? Array.from(activeSlideDiv.querySelectorAll('.step-item')) : [];
+    setCurrentStep(steps.length);
+  }, [currentSlide, slides.length]);
+
+  // Tự động đếm số step của slide hiện tại
+  useEffect(() => {
+    if (!slideWrapperRef.current || slides.length === 0) {
+      setActiveTotalSteps(0);
+      return;
+    }
+    const timer = setTimeout(() => {
+      const slideDivs = slideWrapperRef.current?.querySelectorAll('[data-slide-index]');
+      const activeSlideDiv = slideDivs ? (slideDivs[currentSlide] as HTMLElement) : null;
+      if (!activeSlideDiv || currentSlide === 0) {
+        setActiveTotalSteps(0);
+      } else {
+        const count = activeSlideDiv.querySelectorAll('.step-item').length;
+        setActiveTotalSteps(count);
+      }
+    }, 60);
+    return () => clearTimeout(timer);
+  }, [currentSlide, slides]);
+
+  // Cập nhật phím tắt: Space/Enter/Mũi tên Phải/Xuống -> Dòng tiếp; Mũi tên Trái/Lên -> Lùi; A -> Hiện hết
   useEffect(() => {
     const handleKeydown = (e: KeyboardEvent) => {
+      if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) return;
+      if (isEditorOpen && (e.target as HTMLElement)?.closest('.monaco-editor')) return;
+
       if (slides.length > 0) {
-        if (e.key === 'ArrowRight') nextSlide();
-        if (e.key === 'ArrowLeft') prevSlide();
+        if (e.key === 'PageDown' || (e.key === 'ArrowRight' && e.shiftKey)) {
+          e.preventDefault();
+          nextSlide();
+        } else if (e.key === 'PageUp' || (e.key === 'ArrowLeft' && e.shiftKey)) {
+          e.preventDefault();
+          prevSlide();
+        } else if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'Enter' || e.key === 'ArrowDown') {
+          e.preventDefault();
+          nextStepOrSlide();
+        } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+          e.preventDefault();
+          prevStepOrSlide();
+        } else if (e.key === 'a' || e.key === 'A') {
+          revealAllSteps();
+        } else if (e.key === 'f' || e.key === 'F') {
+          toggleFullscreen();
+        }
       }
     };
     window.addEventListener('keydown', handleKeydown);
     return () => window.removeEventListener('keydown', handleKeydown);
-  }, [slides.length, nextSlide, prevSlide]);
+  }, [slides.length, nextStepOrSlide, prevStepOrSlide, nextSlide, prevSlide, revealAllSteps, isEditorOpen]);
 
   // Kích hoạt KaTeX & MathJax typeset cho slide preview
   const triggerMathJax = (targetElement?: Element | null) => {
@@ -177,7 +275,7 @@ export function SlidePresentation() {
       attributeFilter: ['class', 'style'],
     });
 
-    // Lắng nghe click: vừa hỗ trợ render MathJax cho nút tương tác, vừa hỗ trợ click chuột trái để chuyển slide tiếp
+    // Lắng nghe click: vừa hỗ trợ render MathJax cho nút tương tác, vừa hỗ trợ click chuột trái để hiện dòng tiếp / chuyển slide tiếp
     const handleInteraction = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
       const interactive = target.closest('button, .btn, [onclick], input, textarea, select, label, a, [role="button"], .sim-controls');
@@ -187,11 +285,11 @@ export function SlidePresentation() {
         return;
       }
 
-      // Nếu click chuột trái trên slide (không chạm nút tương tác và không mở editor) -> chuyển tiếp slide
+      // Nếu click chuột trái trên slide (không chạm nút tương tác và không mở editor) -> hiện dòng tiếp / chuyển tiếp slide
       if (e.button === 0 && !isEditorOpen) {
         const sel = window.getSelection();
         if (sel && sel.toString().trim().length > 0) return;
-        nextSlide();
+        nextStepOrSlide();
       }
     };
 
@@ -202,7 +300,7 @@ export function SlidePresentation() {
       container.removeEventListener('click', handleInteraction);
       if (debounceTimer) clearTimeout(debounceTimer);
     };
-  }, [currentSlide, slides, isEditorOpen, nextSlide]);
+  }, [currentSlide, slides, isEditorOpen, nextStepOrSlide]);
 
   // Re-typeset mỗi khi currentSlide, slides hoặc editor thay đổi
   useEffect(() => {
@@ -243,12 +341,15 @@ export function SlidePresentation() {
   };
 
   const handleSlidesGenerated = (slidesHtml: string) => {
+    // Chuẩn hóa đảm bảo các slide nội dung đều có step-item
+    const normalizedHtml = ensureStepItemsInHtml(slidesHtml);
+
     // Update editor content
-    setEditorContent(slidesHtml);
+    setEditorContent(normalizedHtml);
 
     // Parse slides from HTML
     const parser = new DOMParser();
-    const doc = parser.parseFromString(`<div>${slidesHtml}</div>`, 'text/html');
+    const doc = parser.parseFromString(`<div>${normalizedHtml}</div>`, 'text/html');
     const slideElements = doc.querySelectorAll('.slide');
 
     const newSlides = Array.from(slideElements).map((el, index) => ({
@@ -260,6 +361,7 @@ export function SlidePresentation() {
     if (newSlides.length > 0) {
       setSlides(newSlides);
       setCurrentSlide(0);
+      setCurrentStep(0);
 
       // Re-render MathJax after state update
       setTimeout(() => {
@@ -289,6 +391,7 @@ export function SlidePresentation() {
 
     const renderedSlidesHtml = slides
       .map((s, idx) => {
+        const processedContent = idx === 0 ? s.content : ensureStepItemsInHtml(s.content);
         return `      <!-- ==================== SLIDE ${idx + 1}: ${s.title.replace(/</g, '&lt;')} ==================== -->
       <section class="slide-page absolute inset-0 p-6 sm:p-8 md:p-10 lg:p-12 flex flex-col justify-start gap-4 sm:gap-6 overflow-y-auto bg-white text-slate-800 transition-all duration-300 ${
         idx === 0 ? 'active' : ''
@@ -297,7 +400,7 @@ export function SlidePresentation() {
             ? 'opacity: 1; pointer-events: auto; z-index: 10;'
             : 'opacity: 0; pointer-events: none; z-index: 0;'
         }">
-        ${s.content}
+        ${processedContent}
       </section>`;
       })
       .join('\n\n');
@@ -1171,7 +1274,8 @@ ${renderedSlidesHtml}
 
   const downloadPPTX = async () => {
     try {
-      await generatePptx(slides, 'bai-giang-slide');
+      const pptxSlides = filterSlidesForPptx(slides);
+      await generatePptx(pptxSlides, 'bai-giang-slide');
     } catch (error) {
       console.error('Lỗi xuất PPTX:', error);
       alert('Có lỗi khi xuất file PPTX. Vui lòng thử lại.');
@@ -1181,7 +1285,8 @@ ${renderedSlidesHtml}
   const downloadPPTXVisual = async () => {
     try {
       setIsExportingMath(true);
-      await generatePptxWithMath(slides, 'bai-giang-slide-visual');
+      const pptxSlides = filterSlidesForPptx(slides);
+      await generatePptxWithMath(pptxSlides, 'bai-giang-slide-visual');
     } catch (error) {
       console.error('Lỗi xuất PPTX trực quan:', error);
       alert('Có lỗi khi xuất file PPTX. Vui lòng thử lại.');
@@ -1377,24 +1482,50 @@ ${renderedSlidesHtml}
               </div>
 
               {/* Control Bar */}
-              <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 glass px-5 py-2.5 rounded-full shadow-2xl flex items-center gap-3 z-50">
+              <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 glass px-4 sm:px-5 py-2 sm:py-2.5 rounded-full shadow-2xl flex items-center gap-2 sm:gap-3 z-50">
                 <button
-                  onClick={prevSlide}
+                  onClick={prevStepOrSlide}
                   className="p-2 hover:bg-white/20 rounded-full transition-all text-white"
-                  title="Slide trước (←)"
+                  title="Lùi 1 dòng hoặc slide trước (← / ↑)"
                 >
                   <ChevronLeft className="w-5 h-5" />
                 </button>
-                <span className="font-bold text-white min-w-14 text-center text-sm">
+                <span className="font-bold text-white min-w-12 text-center text-sm">
                   {currentSlide + 1} / {slides.length}
                 </span>
                 <button
-                  onClick={nextSlide}
+                  onClick={nextStepOrSlide}
                   className="p-2 hover:bg-white/20 rounded-full transition-all text-white"
-                  title="Slide sau (→)"
+                  title="Dòng tiếp hoặc slide sau (→ / ↓ / Space / Enter)"
                 >
                   <ChevronRight className="w-5 h-5" />
                 </button>
+
+                {/* Nút Dòng Tiếp nổi bật với badge đếm bước */}
+                <button
+                  onClick={nextStepOrSlide}
+                  className="px-3.5 sm:px-4 py-1.5 rounded-full bg-gradient-to-r from-teal-500 via-indigo-600 to-teal-600 hover:from-teal-600 hover:to-indigo-700 text-white font-bold text-xs sm:text-sm shadow-lg shadow-teal-500/25 flex items-center gap-1.5 active:scale-95 transition-all border border-white/20"
+                  title="Hiện dòng tiếp / Trang tiếp (Click chuột trái trên slide / Space / Enter / Mũi tên Phải)"
+                >
+                  <span>Dòng Tiếp</span>
+                  {activeTotalSteps > 0 && (
+                    <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-white/20 font-mono">
+                      {currentStep}/{activeTotalSteps}
+                    </span>
+                  )}
+                </button>
+
+                {/* Nút Hiện Hết khi đang giảng bài từng bước */}
+                {activeTotalSteps > 0 && currentStep < activeTotalSteps && (
+                  <button
+                    onClick={revealAllSteps}
+                    className="p-2 hover:bg-white/20 rounded-full transition-all text-amber-300"
+                    title="Hiện toàn bộ nội dung của slide (Phím A)"
+                  >
+                    <Eye className="w-4 h-4" />
+                  </button>
+                )}
+
                 <div className="w-px h-5 bg-white/20" />
                 <button
                   onClick={() => setIsAIInputOpen(true)}

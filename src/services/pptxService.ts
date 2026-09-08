@@ -180,10 +180,42 @@ function parseHtmlContent(html: string): { title: string; bullets: string[]; par
 }
 
 /**
+ * Lọc bỏ slide 2 (Mục tiêu bài học: Chuẩn đầu ra về năng lực và phẩm chất) khi xuất file PowerPoint
+ */
+export function filterSlidesForPptx(slides: SlideData[]): SlideData[] {
+  if (!slides || slides.length === 0) return [];
+
+  return slides.filter((slide, index) => {
+    // Luôn giữ slide 1 (Trang bìa)
+    if (index === 0) return true;
+
+    const lowerTitle = (slide.title || '').toLowerCase();
+    const lowerContent = (slide.content || '').toLowerCase();
+    const fullText = `${lowerTitle} ${lowerContent}`;
+
+    // Phát hiện slide mục tiêu bài học / chuẩn đầu ra năng lực & phẩm chất
+    const isObjectivesSlide =
+      (index === 1 && (
+        fullText.includes('mục tiêu') ||
+        fullText.includes('chuẩn đầu ra') ||
+        fullText.includes('năng lực') ||
+        fullText.includes('phẩm chất') ||
+        fullText.includes('kiến thức trọng tâm')
+      )) ||
+      fullText.includes('chuẩn đầu ra về năng lực') ||
+      fullText.includes('mục tiêu bài học') ||
+      (fullText.includes('mục tiêu') && fullText.includes('năng lực') && fullText.includes('phẩm chất'));
+
+    return !isObjectivesSlide;
+  });
+}
+
+/**
  * Tạo file PPTX từ danh sách slides (phiên bản cơ bản - không render công thức)
  */
 export async function generatePptx(slides: SlideData[], filename: string = 'bai-giang-slide'): Promise<void> {
   const pptx = new PptxGenJS();
+  const filteredSlides = filterSlidesForPptx(slides);
 
   // Thiết lập presentation
   pptx.layout = 'LAYOUT_16x9';
@@ -192,7 +224,7 @@ export async function generatePptx(slides: SlideData[], filename: string = 'bai-
   pptx.subject = 'Bài giảng được tạo bởi AI';
 
   // Tạo từng slide
-  slides.forEach((slideData, index) => {
+  filteredSlides.forEach((slideData, index) => {
     const slide = pptx.addSlide();
 
     // Background
@@ -336,6 +368,7 @@ export async function generatePptx(slides: SlideData[], filename: string = 'bai-
  */
 export async function generatePptxWithMath(slides: SlideData[], filename: string = 'bai-giang-slide-visual'): Promise<void> {
   const pptx = new PptxGenJS();
+  const filteredSlides = filterSlidesForPptx(slides);
 
   // Thiết lập presentation
   pptx.layout = 'LAYOUT_16x9';
@@ -344,8 +377,8 @@ export async function generatePptxWithMath(slides: SlideData[], filename: string
   pptx.subject = 'Bài giảng được tạo bởi AI (công thức trực quan)';
 
   // Tạo từng slide
-  for (let index = 0; index < slides.length; index++) {
-    const slideData = slides[index];
+  for (let index = 0; index < filteredSlides.length; index++) {
+    const slideData = filteredSlides[index];
     const slide = pptx.addSlide();
 
     // Background
