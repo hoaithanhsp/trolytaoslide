@@ -12,6 +12,10 @@ declare global {
   interface Window {
     MathJax?: {
       typesetPromise?: (elements?: Element[]) => Promise<void>;
+      typeset?: () => void;
+      startup?: {
+        promise?: Promise<void>;
+      };
     };
   }
 }
@@ -74,15 +78,49 @@ export function SlidePresentation() {
     }
   };
 
+  // Kích hoạt MathJax typeset cho slide preview
+  const triggerMathJax = () => {
+    if (typeof window === 'undefined') return;
+    if (!slideWrapperRef.current) return;
+
+    try {
+      if (window.MathJax?.typesetPromise) {
+        window.MathJax.typesetPromise([slideWrapperRef.current]).catch((err) => {
+          console.warn('MathJax preview typeset warning:', err);
+        });
+      } else if (window.MathJax?.typeset) {
+        window.MathJax.typeset();
+      }
+    } catch (e) {
+      console.warn('MathJax preview typeset error:', e);
+    }
+  };
+
+  // Re-typeset mỗi khi currentSlide, slides hoặc editor thay đổi
+  useEffect(() => {
+    if (slides.length === 0) return;
+    const timer = setTimeout(() => {
+      triggerMathJax();
+    }, 80);
+    return () => clearTimeout(timer);
+  }, [currentSlide, slides, isEditorOpen]);
+
+  // Typeset khi MathJax vừa sẵn sàng
+  useEffect(() => {
+    if (window.MathJax?.startup?.promise) {
+      window.MathJax.startup.promise.then(() => {
+        triggerMathJax();
+      });
+    }
+  }, []);
+
   const handleEditorChange = (newContent: string) => {
     setEditorContent(newContent);
     if (slideWrapperRef.current) {
       slideWrapperRef.current.innerHTML = newContent;
 
       // Re-render MathJax
-      if (window.MathJax) {
-        window.MathJax.typesetPromise?.([slideWrapperRef.current]);
-      }
+      triggerMathJax();
 
       // Update slides array
       const slideElements = slideWrapperRef.current.querySelectorAll('.slide');
@@ -117,9 +155,7 @@ export function SlidePresentation() {
 
       // Re-render MathJax after state update
       setTimeout(() => {
-        if (window.MathJax && slideWrapperRef.current) {
-          window.MathJax.typesetPromise?.([slideWrapperRef.current]);
-        }
+        triggerMathJax();
       }, 100);
     }
   };
@@ -135,492 +171,724 @@ export function SlidePresentation() {
   };
 
   const downloadHTML = () => {
+    const lectureTitle = slides[0]?.title || 'Bài Giảng Slide Tương Tác';
+    const slidesDataJson = JSON.stringify(
+      slides.map((s, idx) => ({
+        id: idx + 1,
+        title: s.title || `Slide ${idx + 1}`,
+      }))
+    );
+
+    const renderedSlidesHtml = slides
+      .map((s, idx) => {
+        return `      <!-- ==================== SLIDE ${idx + 1}: ${s.title.replace(/</g, '&lt;')} ==================== -->
+      <section class="slide-page absolute inset-0 p-6 sm:p-10 md:p-12 flex flex-col justify-between overflow-y-auto bg-white text-slate-800 transition-all duration-300 ${
+        idx === 0 ? 'active' : ''
+      }" data-slide="${idx + 1}" style="${
+          idx === 0
+            ? 'opacity: 1; pointer-events: auto; z-index: 10;'
+            : 'opacity: 0; pointer-events: none; z-index: 0;'
+        }">
+        ${s.content}
+      </section>`;
+      })
+      .join('\n\n');
+
     const htmlTemplate = `<!DOCTYPE html>
-<html lang="vi">
+<html lang="vi" class="h-full">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bài Giảng Slide</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${lectureTitle}</title>
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;900&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- MathJax Configuration -->
-    <script>
-        window.MathJax = {
-            tex: {
-                inlineMath: [['$', '$'], ['\\\\(', '\\\\)']],
-                displayMath: [['$$', '$$'], ['\\\\[', '\\\\]']],
-                processEscapes: true,
-                processEnvironments: true
-            },
-            options: {
-                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
-            },
-            startup: {
-                pageReady: () => {
-                    return MathJax.startup.defaultPageReady().then(() => {
-                        console.log('MathJax loaded successfully');
-                    });
-                }
-            }
-        };
-    </script>
-    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <!-- Font Awesome 6 CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
-    <style>
-        :root {
-            --primary: #2563eb;
-            --secondary: #1e40af;
-            --accent: #f59e0b;
-            --text: #1e293b;
-            --bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
+  <!-- Google Fonts: Be Vietnam Pro & Space Grotesk -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
 
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: 'Be Vietnam Pro', sans-serif;
-            background: var(--bg);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            padding: 0;
-            overflow: hidden;
-        }
+  <!-- KaTeX for fast & crisp math rendering -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
 
-        #presentation-area {
-            position: relative;
-            width: 100%;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
+  <!-- MathJax 3 fallback for complex formulas -->
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\\\(', '\\\\)']],
+        displayMath: [['$$', '$$'], ['\\\\[', '\\\\]']],
+        processEscapes: true,
+        processEnvironments: true
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      },
+      startup: {
+        pageReady: () => {
+          return MathJax.startup.defaultPageReady();
         }
+      }
+    };
+  </script>
+  <script defer id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
 
-        .slide-container {
-            flex: 1;
-            width: 100%;
-            background: white;
-            position: relative;
-            overflow: hidden;
-        }
+  <style>
+    /* Base Presentation Styles */
+    body {
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: pan-y;
+      background-color: #020617;
+      color: #1e293b;
+      font-family: 'Be Vietnam Pro', sans-serif;
+    }
 
-        .slide {
-            display: none;
-            width: 100%;
-            height: 100%;
-            padding: 40px 60px;
-            flex-direction: column;
-            justify-content: flex-start;
-            background: white;
-            overflow-y: auto;
-            overflow-x: hidden;
-        }
-        .slide.active { display: flex; }
+    /* 16:9 Presentation Stage */
+    .slide-viewport {
+      aspect-ratio: 16 / 9;
+      max-height: calc(100vh - 84px);
+    }
 
-        /* Step-by-step reveal - ẩn các element chưa được reveal */
-        .slide.active > .step-item {
-            opacity: 0;
-            transform: translateY(20px);
-            transition: all 0.4s ease;
-        }
-        .slide.active > .step-item.revealed {
-            opacity: 1;
-            transform: translateY(0);
-        }
+    /* Glassmorphism Styles */
+    .glass-dark {
+      background: rgba(15, 23, 42, 0.88);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+    }
 
-        /* Typography */
-        .slide h1 { 
-            font-size: 3.2rem; font-weight: 800; color: var(--primary); 
-            margin-bottom: 25px; line-height: 1.2;
-        }
-        .slide h2 { 
-            font-size: 2.4rem; font-weight: 700; color: var(--secondary); 
-            margin-bottom: 35px; border-bottom: 4px solid var(--accent); 
-            display: inline-block; padding-bottom: 12px; 
-        }
-        .slide ul, .slide ol { font-size: 1.4rem; line-height: 1.8; padding-left: 45px; color: var(--text); }
-        .slide li { margin-bottom: 18px; }
-        .slide li::marker { color: var(--primary); font-weight: bold; }
-        .slide p { font-size: 1.35rem; margin-bottom: 22px; line-height: 1.7; color: var(--text); }
+    .glass-card {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(226, 232, 240, 0.85);
+    }
 
-        /* Math formulas styling */
-        .MathJax { font-size: 1.1em !important; }
-        mjx-container { margin: 5px 0 !important; }
+    /* Step-by-step reveal: CHỈ ẩn các phần tử có sẵn class .step-item */
+    .step-item {
+      transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+      opacity: 0;
+      transform: translateY(14px);
+      pointer-events: none;
+    }
 
-        /* Box styling */
-        .box, [style*="border-left"] {
-            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-            border-left: 5px solid var(--primary);
-            padding: 25px 30px; margin: 25px 0;
-            border-radius: 0 12px 12px 0; font-size: 1.25rem;
-            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.1);
-        }
+    .step-item.revealed {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
 
-        /* Text emphasis colors - nhấn mạnh nội dung */
-        .text-primary { color: #2563eb !important; }
-        .text-secondary { color: #7c3aed !important; }
-        .text-success { color: #10b981 !important; }
-        .text-warning { color: #f59e0b !important; }
-        .text-danger { color: #ef4444 !important; }
-        .text-info { color: #0ea5e9 !important; }
-        .text-pink { color: #ec4899 !important; }
-        .text-orange { color: #f97316 !important; }
-        
-        /* Background highlights */
-        .highlight { background: linear-gradient(120deg, #fef08a 0%, #fde047 100%); padding: 2px 8px; border-radius: 4px; }
-        .highlight-blue { background: linear-gradient(120deg, #dbeafe 0%, #bfdbfe 100%); padding: 2px 8px; border-radius: 4px; }
-        .highlight-green { background: linear-gradient(120deg, #d1fae5 0%, #a7f3d0 100%); padding: 2px 8px; border-radius: 4px; }
-        .highlight-pink { background: linear-gradient(120deg, #fce7f3 0%, #fbcfe8 100%); padding: 2px 8px; border-radius: 4px; }
-        
-        /* Bold emphasis */
-        .emphasis { font-weight: 700; color: var(--primary); }
-        .emphasis-red { font-weight: 700; color: #ef4444; }
-        .emphasis-green { font-weight: 700; color: #10b981; }
-        
-        /* Keyword box */
-        .keyword {
-            display: inline-block;
-            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-            color: white;
-            padding: 4px 12px;
-            border-radius: 6px;
-            font-weight: 600;
-            margin: 2px 4px;
-        }
-        .keyword-green {
-            display: inline-block;
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            color: white;
-            padding: 4px 12px;
-            border-radius: 6px;
-            font-weight: 600;
-            margin: 2px 4px;
-        }
-        .keyword-orange {
-            display: inline-block;
-            background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
-            color: white;
-            padding: 4px 12px;
-            border-radius: 6px;
-            font-weight: 600;
-            margin: 2px 4px;
-        }
+    .step-item.current-focus {
+      box-shadow: 0 0 0 2px #6366f1, 0 8px 20px -4px rgba(99, 102, 241, 0.3);
+    }
 
-        /* Controls - thanh công cụ cố định ở dưới */
-        .controls {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 12px 28px;
-            display: flex; 
-            gap: 16px; 
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-        }
-        .btn {
-            border: none; 
-            background: rgba(255,255,255,0.2); 
-            cursor: pointer;
-            font-size: 1.3rem; 
-            color: white; 
-            padding: 10px 14px;
-            border-radius: 50%; 
-            transition: all 0.3s ease;
-        }
-        .btn:hover { 
-            background: rgba(255,255,255,0.4); 
-            transform: scale(1.1);
-        }
-        
-        /* Nút Next Step - nổi bật hơn */
-        .btn-step {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            color: white;
-            font-size: 0.9rem;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-weight: 600;
-            box-shadow: 0 4px 0 #047857, 0 6px 15px rgba(0,0,0,0.2);
-            transition: all 0.15s ease;
-            border: none;
-            cursor: pointer;
-        }
-        .btn-step:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 0 #047857, 0 10px 20px rgba(0,0,0,0.25);
-            background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
-        }
-        .btn-step:active {
-            transform: translateY(1px);
-            box-shadow: 0 2px 0 #047857, 0 3px 8px rgba(0,0,0,0.15);
-        }
-        
-        #slide-counter { font-weight: 700; font-size: 1.1rem; min-width: 70px; text-align: center; color: white; }
-        #step-counter { font-size: 0.8rem; color: #a7f3d0; font-weight: 500; }
-        .divider { color: rgba(255,255,255,0.5); margin: 0 8px; }
+    /* Laser Pointer Dot */
+    #laser-pointer {
+      position: fixed;
+      width: 14px;
+      height: 14px;
+      background-color: #ef4444;
+      border-radius: 50%;
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 0 12px 4px rgba(239, 68, 68, 0.85), 0 0 24px 8px rgba(239, 68, 68, 0.45);
+      z-index: 99999;
+      display: none;
+      transition: width 0.1s, height 0.1s;
+    }
 
-        /* Simulation styling */
-        .simulation {
-            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-            border: 2px solid #0ea5e9;
-            border-radius: 16px;
-            padding: 20px;
-            margin: 20px 0;
-            box-shadow: 0 4px 20px rgba(14, 165, 233, 0.15);
-        }
-        .simulation svg {
-            display: block;
-            margin: 0 auto;
-            max-width: 100%;
-        }
-        .sim-controls {
-            display: flex;
-            gap: 12px;
-            justify-content: center;
-            flex-wrap: wrap;
-            margin-top: 15px;
-            padding-top: 15px;
-            border-top: 1px solid #bae6fd;
-        }
-        .sim-controls button {
-            padding: 8px 16px;
-            border: none;
-            border-radius: 8px;
-            background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
-            color: white;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-        .sim-controls button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.4);
-        }
-        .sim-controls input[type="range"] {
-            width: 150px;
-            accent-color: #0ea5e9;
-        }
-        .sim-controls label {
-            font-size: 0.9rem;
-            color: var(--text);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .sim-hint {
-            text-align: center;
-            font-size: 0.85rem;
-            color: #0369a1;
-            margin-top: 10px;
-            font-style: italic;
-        }
+    /* Math Formula Highlight Box */
+    .math-box {
+      font-family: 'Space Grotesk', sans-serif;
+      letter-spacing: 0.02em;
+    }
 
-        /* Images and audio */
-        .slide img {
-            max-width: 100%;
-            max-height: 200px;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            margin: 15px 0;
-        }
-        .slide audio {
-            width: 100%;
-            max-width: 400px;
-            margin: 15px 0;
-        }
+    /* Content styling elements */
+    .slide-page h1 {
+      font-size: 2.8rem;
+      font-weight: 800;
+      line-height: 1.25;
+      color: #0f172a;
+      margin-bottom: 1rem;
+    }
+    .slide-page h2 {
+      font-size: 2.1rem;
+      font-weight: 700;
+      line-height: 1.3;
+      color: #1e3a8a;
+      margin-bottom: 1.25rem;
+      border-bottom: 3px solid #38bdf8;
+      display: inline-block;
+      padding-bottom: 6px;
+    }
+    .slide-page h3 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #1e293b;
+      margin-bottom: 0.75rem;
+    }
+    .slide-page ul, .slide-page ol {
+      font-size: 1.15rem;
+      line-height: 1.8;
+      padding-left: 1.75rem;
+      margin-bottom: 1rem;
+    }
+    .slide-page li {
+      margin-bottom: 0.5rem;
+    }
+    .slide-page p {
+      font-size: 1.15rem;
+      line-height: 1.75;
+      margin-bottom: 1rem;
+    }
 
-        @media (max-width: 768px) {
-            body { padding: 10px; }
-            .slide { padding: 30px 40px; }
-            .slide h1 { font-size: 2.2rem; }
-            .slide h2 { font-size: 1.8rem; }
-            .slide ul, .slide ol, .slide p { font-size: 1.1rem; }
-            .simulation { padding: 15px; }
-        }
-    </style>
+    .box, [style*="border-left"] {
+      background: linear-gradient(135deg, #f0fdfa 0%, #ccfbf1 100%) !important;
+      border-left: 4px solid #14b8a6 !important;
+      padding: 16px 20px;
+      border-radius: 0 10px 10px 0;
+      margin: 14px 0;
+      color: #0f172a !important;
+      box-shadow: 0 4px 12px rgba(20, 184, 166, 0.12);
+    }
+
+    /* Text emphasis helper classes */
+    .text-primary { color: #0284c7 !important; }
+    .text-secondary { color: #6366f1 !important; }
+    .text-success { color: #059669 !important; }
+    .text-warning { color: #d97706 !important; }
+    .text-danger { color: #dc2626 !important; }
+    .text-pink { color: #db2777 !important; }
+
+    .highlight { background: #fef08a; padding: 2px 6px; border-radius: 4px; }
+    .highlight-blue { background: #bae6fd; padding: 2px 6px; border-radius: 4px; }
+    .highlight-green { background: #bbf7d0; padding: 2px 6px; border-radius: 4px; }
+
+    .keyword {
+      display: inline-block;
+      background: #0284c7;
+      color: white;
+      padding: 3px 10px;
+      border-radius: 6px;
+      font-weight: 600;
+      margin: 2px 4px;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.05);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(99, 102, 241, 0.4);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(99, 102, 241, 0.7);
+    }
+  </style>
 </head>
-<body>
-    <div id="presentation-area">
-        <div class="slide-container" id="slide-wrapper">
-${editorContent}
-        </div>
+<body class="h-full flex flex-col items-center justify-center overflow-hidden antialiased select-none">
 
-        <div class="controls">
-            <button class="btn" onclick="prevSlide()" title="Slide trước"><i class="fas fa-chevron-left"></i></button>
-            <span id="slide-counter">1 / ${slides.length}</span>
-            <button class="btn" onclick="nextSlide()" title="Slide sau"><i class="fas fa-chevron-right"></i></button>
-            <span class="divider">|</span>
-            <button class="btn btn-step" onclick="nextStep()" title="Hiện dòng tiếp theo (Space)">
-                <i class="fas fa-plus"></i> Tiếp
-            </button>
-            <span id="step-counter"></span>
-            <span class="divider">|</span>
-            <button class="btn" onclick="toggleFullscreen()" title="Toàn màn hình"><i class="fas fa-expand"></i></button>
-        </div>
+  <!-- Laser Pointer Dot -->
+  <div id="laser-pointer"></div>
+
+  <!-- Top Progress Bar -->
+  <div class="fixed top-0 left-0 right-0 h-1.5 bg-slate-900 z-50">
+    <div id="progress-bar" class="h-full bg-gradient-to-r from-teal-400 via-indigo-500 to-pink-500 w-0 transition-all duration-300 ease-out shadow-sm shadow-indigo-500/50"></div>
+  </div>
+
+  <!-- Notification Toast Component -->
+  <div id="toast-msg" class="fixed top-5 right-5 z-50 transform -translate-y-24 transition-transform duration-300 glass-dark text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border border-indigo-500/40">
+    <i id="toast-icon" class="fa-solid fa-circle-info text-indigo-400 text-lg"></i>
+    <span id="toast-text" class="text-sm font-medium">Thông báo</span>
+  </div>
+
+  <!-- Drawer Menu - Danh sách mục lục Slide -->
+  <div id="drawer-menu" class="fixed top-0 bottom-0 left-0 w-80 max-w-[85vw] glass-dark text-white z-50 transform -translate-x-full transition-transform duration-300 flex flex-col shadow-2xl border-r border-slate-700/60">
+    <div class="p-5 border-b border-slate-700/60 flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <i class="fa-solid fa-list-ul text-teal-400"></i>
+        <h3 class="font-bold text-base">Mục Lục Bài Giảng</h3>
+      </div>
+      <button onclick="toggleDrawer(false)" class="p-2 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors" title="Đóng menu (Phím M)">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <div id="drawer-slide-list" class="flex-1 overflow-y-auto p-4 space-y-2">
+      <!-- Generated dynamically in JS -->
+    </div>
+    <div class="p-4 border-t border-slate-700/60 text-xs text-slate-400 flex items-center justify-between">
+      <span>Trợ Lý Tạo Slide Thông Minh</span>
+      <kbd class="px-2 py-1 bg-slate-800 rounded border border-slate-700 font-mono">Phím M</kbd>
+    </div>
+  </div>
+
+  <!-- Main Presentation Container (16:9 Stage) -->
+  <main class="w-full max-w-[1360px] p-2 sm:p-4 flex-1 flex flex-col items-center justify-center min-h-0">
+    <div id="slide-stage" class="slide-viewport w-full bg-slate-900 rounded-3xl shadow-2xl overflow-hidden relative flex flex-col border border-slate-800/80">
+${renderedSlidesHtml}
+    </div>
+  </main>
+
+  <!-- Presenter Toolbar (Floating Control Bar at bottom) -->
+  <nav class="fixed bottom-3 sm:bottom-4 z-40 glass-dark text-white px-4 sm:px-6 py-2.5 rounded-2xl shadow-2xl flex items-center gap-2 sm:gap-4 border border-slate-700/70">
+    <!-- Left Group: Drawer Toggle, Navigation & Slide Counter -->
+    <div class="flex items-center gap-2">
+      <button onclick="toggleDrawer()" class="p-2.5 rounded-xl hover:bg-slate-800/80 active:scale-95 transition-all text-slate-300 hover:text-teal-400" title="Mở Mục Lục Slide (Phím M)">
+        <i class="fa-solid fa-bars text-sm"></i>
+      </button>
+      <div class="w-px h-5 bg-slate-700/60 hidden sm:block"></div>
+      <button onclick="prevStepOrSlide()" class="p-2.5 rounded-xl hover:bg-slate-800/80 active:scale-95 transition-all text-slate-300 hover:text-white" title="Trang trước / Lùi 1 dòng (Mũi tên Trái / Lên)">
+        <i class="fa-solid fa-chevron-left text-xs"></i>
+      </button>
+      <div class="font-math font-semibold text-xs sm:text-sm px-2 min-w-[70px] text-center select-none">
+        <span id="slide-num-current" class="text-teal-400 font-bold">01</span> / <span id="slide-num-total">${slides.length}</span>
+      </div>
+      <button onclick="nextStepOrSlide()" class="p-2.5 rounded-xl hover:bg-slate-800/80 active:scale-95 transition-all text-slate-300 hover:text-white" title="Trang tiếp / Dòng tiếp (Mũi tên Phải / Enter)">
+        <i class="fa-solid fa-chevron-right text-xs"></i>
+      </button>
     </div>
 
-    <script>
-        // Đợi DOM loaded hoàn toàn
-        document.addEventListener('DOMContentLoaded', function() {
-            var currentSlide = 0;
-            var currentStep = 0;
-            var slides = document.querySelectorAll('.slide');
-            var slideCounter = document.getElementById('slide-counter');
-            var stepCounter = document.getElementById('step-counter');
-            
-            console.log('Slides found:', slides.length);
-            
-            if (slides.length === 0) {
-                console.error('No slides found with class .slide');
-                return;
-            }
+    <!-- Center Primary Action: Dòng Tiếp Button & Step Indicator -->
+    <div class="flex items-center gap-2">
+      <button onclick="nextStepOrSlide()" class="px-4 sm:px-5 py-2 rounded-xl bg-gradient-to-r from-teal-500 via-indigo-600 to-teal-600 hover:from-teal-600 hover:to-indigo-700 text-white font-bold transition-all shadow-lg shadow-teal-500/25 flex items-center gap-2 active:scale-95 border border-white/20" title="Hiện dòng tiếp / Trang tiếp (Space / Enter / Mũi tên Xuống)">
+        <span>Dòng Tiếp</span>
+        <i class="fa-solid fa-forward-step text-xs"></i>
+      </button>
+      <div class="px-3 py-2 rounded-xl glass-dark font-medium text-[11px] border border-slate-700/60 shadow-lg text-slate-300 hidden sm:flex items-center gap-1">
+        <i class="fa-solid fa-bars-progress text-teal-400"></i>
+        <span>Dòng: <span id="step-counter-text" class="font-math font-bold text-white">0 / 0</span></span>
+      </div>
+    </div>
 
-            // Thêm class step-item cho các phần tử con trong slide
-            function initStepItems(slide) {
-                var children = slide.children;
-                for (var i = 0; i < children.length; i++) {
-                    children[i].classList.add('step-item');
-                    children[i].classList.remove('revealed');
-                }
-            }
+    <!-- Right Group: Teacher Toolset (Hiện Hết, Laser, Toàn màn hình) -->
+    <div class="flex items-center gap-1 sm:gap-2">
+      <button onclick="revealAllCurrentSlide()" class="px-3 py-2 rounded-xl hover:bg-slate-800/80 transition-all font-medium border border-slate-700/60 shadow-lg active:scale-95 flex items-center gap-1.5 text-xs text-emerald-300" title="Hiện toàn bộ nội dung slide hiện tại (Phím A)">
+        <i class="fa-solid fa-eye text-emerald-400"></i>
+        <span class="hidden md:inline">Hiện Hết</span>
+      </button>
+      <button id="btn-laser" onclick="toggleLaser()" class="px-3 py-2 rounded-xl hover:bg-slate-800/80 transition-all font-medium border border-slate-700/60 shadow-lg active:scale-95 flex items-center gap-1.5 text-xs text-rose-300" title="Bật/Tắt Con trỏ Laser ảo (Phím L)">
+        <i class="fa-solid fa-crosshairs text-red-400"></i>
+        <span class="hidden md:inline">Laser</span>
+      </button>
+      <button onclick="toggleFullScreen()" class="p-2.5 rounded-xl hover:bg-slate-800/80 transition-all font-medium border border-slate-700/60 shadow-lg active:scale-95 text-amber-400 text-xs" title="Toàn màn hình (Phím F)">
+        <i class="fa-solid fa-expand"></i>
+      </button>
+    </div>
+  </nav>
 
-            // Đếm số step trong slide hiện tại
-            function getStepCount() {
-                var activeSlide = slides[currentSlide];
-                return activeSlide ? activeSlide.querySelectorAll('.step-item').length : 0;
-            }
+  <script>
+    /* ==========================================================================
+       1. WEB AUDIO API SYNTHESIS (Zero External Audio File Dependencies)
+       ========================================================================== */
+    let audioCtx = null;
+    function getAudioContext() {
+      if (!audioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioContext();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+      return audioCtx;
+    }
 
-            // Cập nhật step counter
-            function updateStepCounter() {
-                var total = getStepCount();
-                if (stepCounter && total > 0) {
-                    stepCounter.innerText = currentStep + '/' + total;
-                } else if (stepCounter) {
-                    stepCounter.innerText = '';
-                }
-            }
+    function playStepSound() {
+      try {
+        const ctx = getAudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(520, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.06);
+        gain.gain.setValueAtTime(0.12, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.06);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.06);
+      } catch (e) {
+        console.warn('Audio play restricted:', e);
+      }
+    }
 
-            // Hiện step tiếp theo
-            window.nextStep = function() {
-                var activeSlide = slides[currentSlide];
-                if (!activeSlide) return;
-                
-                var steps = activeSlide.querySelectorAll('.step-item');
-                if (currentStep < steps.length) {
-                    steps[currentStep].classList.add('revealed');
-                    currentStep++;
-                    updateStepCounter();
-                    
-                    // Re-render MathJax cho step vừa reveal
-                    if (window.MathJax && window.MathJax.typesetPromise) {
-                        window.MathJax.typesetPromise([steps[currentStep - 1]]).catch(function(err) {
-                            console.log('MathJax error:', err);
-                        });
-                    }
-                } else {
-                    // Đã hết step, chuyển slide
-                    window.nextSlide();
-                }
-            };
-            
-            // Hiện tất cả steps
-            function revealAllSteps() {
-                var activeSlide = slides[currentSlide];
-                if (!activeSlide) return;
-                var steps = activeSlide.querySelectorAll('.step-item');
-                for (var i = 0; i < steps.length; i++) {
-                    steps[i].classList.add('revealed');
-                }
-                currentStep = steps.length;
-                updateStepCounter();
-            }
+    /* ==========================================================================
+       2. PRESENTATION ENGINE & STATE MANAGEMENT
+       ========================================================================== */
+    const slidePages = Array.from(document.querySelectorAll('.slide-page'));
+    const totalSlides = slidePages.length;
+    let currentSlideIndex = 0;
+    let currentStepOnSlide = 0;
+    let isLaserActive = false;
 
-            function showSlide(index) {
-                // Remove active from all slides
-                for (var i = 0; i < slides.length; i++) {
-                    slides[i].classList.remove('active');
-                }
-                
-                // Handle index wrap-around
-                if (index >= slides.length) index = 0;
-                if (index < 0) index = slides.length - 1;
-                
-                currentSlide = index;
-                currentStep = 0;
-                
-                // Init step items
-                initStepItems(slides[currentSlide]);
-                
-                slides[currentSlide].classList.add('active');
-                
-                // Update counter
-                if (slideCounter) {
-                    slideCounter.innerText = (currentSlide + 1) + ' / ' + slides.length;
-                }
-                updateStepCounter();
-                
-                // Re-render MathJax for current slide
-                if (window.MathJax && window.MathJax.typesetPromise) {
-                    window.MathJax.typesetPromise([slides[currentSlide]]).catch(function(err) {
-                        console.log('MathJax error:', err);
-                    });
-                }
-            }
+    const slidesMetadata = ${slidesDataJson};
 
-            // Navigation functions (global scope)
-            window.nextSlide = function() { showSlide(currentSlide + 1); };
-            window.prevSlide = function() { showSlide(currentSlide - 1); };
-            window.toggleFullscreen = function() {
-                if (!document.fullscreenElement) { 
-                    document.documentElement.requestFullscreen(); 
-                } else { 
-                    document.exitFullscreen(); 
-                }
-            };
+    function initDrawer() {
+      const listContainer = document.getElementById('drawer-slide-list');
+      if (!listContainer) return;
+      listContainer.innerHTML = '';
+      slidesMetadata.forEach((s, idx) => {
+        const btn = document.createElement('button');
+        const isActive = idx === currentSlideIndex;
+        btn.className = 'w-full text-left px-3 py-2.5 rounded-xl flex items-center justify-between transition-colors ' +
+          (isActive
+            ? 'bg-teal-600 text-white font-bold shadow-md'
+            : 'text-slate-300 hover:bg-slate-800/80 hover:text-white');
+        btn.innerHTML =
+          '<span class="truncate pr-2"><span class="font-mono text-xs opacity-75 mr-2">' +
+          String(idx + 1).padStart(2, '0') + '.</span>' +
+          (s.title || 'Slide ' + (idx + 1)) +
+          '</span>' +
+          '<i class="fa-solid fa-arrow-right text-xs opacity-50"></i>';
+        btn.onclick = () => {
+          goToSlide(idx);
+          toggleDrawer(false);
+        };
+        listContainer.appendChild(btn);
+      });
+    }
 
-            // Keyboard navigation
-            document.addEventListener('keydown', function(e) {
-                if (e.key === ' ' || e.key === 'Enter') { 
-                    e.preventDefault(); 
-                    window.nextStep(); // Space/Enter = next step
-                }
-                if (e.key === 'ArrowRight') { 
-                    e.preventDefault(); 
-                    window.nextSlide(); // Arrow Right = next slide
-                }
-                if (e.key === 'ArrowLeft') { 
-                    e.preventDefault(); 
-                    window.prevSlide(); 
-                }
-                if (e.key === 'ArrowDown') {
-                    e.preventDefault();
-                    window.nextStep(); // Arrow Down = next step
-                }
-                if (e.key === 'a' || e.key === 'A') {
-                    revealAllSteps(); // A = reveal all
-                }
-                if (e.key === 'f' || e.key === 'F') {
-                    window.toggleFullscreen();
-                }
-            });
+    function toggleDrawer(forceState) {
+      const drawer = document.getElementById('drawer-menu');
+      if (!drawer) return;
+      const isClosed = drawer.classList.contains('-translate-x-full');
+      const shouldOpen = forceState !== undefined ? forceState : isClosed;
+      if (shouldOpen) {
+        drawer.classList.remove('-translate-x-full');
+      } else {
+        drawer.classList.add('-translate-x-full');
+      }
+    }
 
-            // Initialize first slide
-            showSlide(0);
-            
-            // Initial MathJax render
-            if (window.MathJax && window.MathJax.typesetPromise) {
-                window.MathJax.typesetPromise().then(function() {
-                    console.log('MathJax initial render complete');
-                });
-            }
+    function getStepsForSlide(slideEl) {
+      if (!slideEl) return [];
+      // CHỈ lấy các phần tử có class step-item được đánh dấu sẵn
+      return Array.from(slideEl.querySelectorAll('.step-item'));
+    }
+
+    function updateStepBadge(totalSteps) {
+      const counterEl = document.getElementById('step-counter-text');
+      if (counterEl) {
+        counterEl.innerText = currentStepOnSlide + ' / ' + totalSteps;
+      }
+    }
+
+    function updateSlideView() {
+      if (totalSlides === 0) return;
+
+      slidePages.forEach((page, idx) => {
+        if (idx === currentSlideIndex) {
+          page.style.opacity = '1';
+          page.style.pointerEvents = 'auto';
+          page.style.zIndex = '10';
+          page.classList.add('active');
+        } else {
+          page.style.opacity = '0';
+          page.style.pointerEvents = 'none';
+          page.style.zIndex = '0';
+          page.classList.remove('active');
+        }
+      });
+
+      // Update counters
+      const currNumEl = document.getElementById('slide-num-current');
+      if (currNumEl) {
+        currNumEl.innerText = String(currentSlideIndex + 1).padStart(2, '0');
+      }
+
+      // Update Top Progress Bar
+      const progBar = document.getElementById('progress-bar');
+      if (progBar && totalSlides > 0) {
+        const percent = ((currentSlideIndex + 1) / totalSlides) * 100;
+        progBar.style.width = percent + '%';
+      }
+
+      // Quản lý steps của slide hiện tại
+      const activeSlide = slidePages[currentSlideIndex];
+      const steps = getStepsForSlide(activeSlide);
+      const totalSteps = steps.length;
+
+      // Xóa focus cũ
+      steps.forEach((st) => st.classList.remove('current-focus'));
+
+      if (totalSteps > 0) {
+        steps.forEach((st, idx) => {
+          if (idx < currentStepOnSlide) {
+            st.classList.add('revealed');
+          } else {
+            st.classList.remove('revealed');
+          }
         });
-    </script>
+        if (currentStepOnSlide > 0 && currentStepOnSlide <= totalSteps) {
+          steps[currentStepOnSlide - 1].classList.add('current-focus');
+        }
+      }
+      updateStepBadge(totalSteps);
+
+      // Re-render MathJax / KaTeX
+      renderMathContent(activeSlide);
+
+      // Cập nhật drawer list
+      initDrawer();
+    }
+
+    function renderMathContent(element) {
+      // Ưu tiên KaTeX auto-render nếu có
+      if (window.renderMathInElement && element) {
+        try {
+          window.renderMathInElement(element, {
+            delimiters: [
+              { left: '$$', right: '$$', display: true },
+              { left: '$', right: '$', display: false },
+              { left: '\\\\(', right: '\\\\)', display: false },
+              { left: '\\\\[', right: '\\\\]', display: true }
+            ],
+            throwOnError: false
+          });
+        } catch (e) {
+          console.warn('KaTeX render warning:', e);
+        }
+      }
+
+      // Gọi MathJax typesetPromise bổ trợ
+      if (window.MathJax && window.MathJax.typesetPromise && element) {
+        window.MathJax.typesetPromise([element]).catch(function(err) {
+          console.warn('MathJax typeset warning:', err);
+        });
+      }
+    }
+
+    function nextStepOrSlide() {
+      const activeSlide = slidePages[currentSlideIndex];
+      const steps = getStepsForSlide(activeSlide);
+      const totalSteps = steps.length;
+
+      // Nếu còn step chưa hiện
+      if (currentStepOnSlide < totalSteps) {
+        currentStepOnSlide++;
+        const stepToReveal = steps[currentStepOnSlide - 1];
+        stepToReveal.classList.add('revealed');
+
+        steps.forEach((st) => st.classList.remove('current-focus'));
+        stepToReveal.classList.add('current-focus');
+
+        updateStepBadge(totalSteps);
+        playStepSound();
+        renderMathContent(stepToReveal);
+      } else {
+        // Đã hết step (hoặc slide không có step-item), chuyển sang slide tiếp
+        if (currentSlideIndex < totalSlides - 1) {
+          currentSlideIndex++;
+          currentStepOnSlide = 0;
+          updateSlideView();
+          playStepSound();
+        } else {
+          showToast('Bạn đang ở slide cuối cùng!', 'info');
+        }
+      }
+    }
+
+    function prevStepOrSlide() {
+      const activeSlide = slidePages[currentSlideIndex];
+      const steps = getStepsForSlide(activeSlide);
+      const totalSteps = steps.length;
+
+      if (currentStepOnSlide > 0) {
+        currentStepOnSlide--;
+        const stepToHide = steps[currentStepOnSlide];
+        stepToHide.classList.remove('revealed', 'current-focus');
+
+        if (currentStepOnSlide > 0) {
+          steps[currentStepOnSlide - 1].classList.add('current-focus');
+        }
+        updateStepBadge(totalSteps);
+      } else {
+        // Lùi về slide trước
+        if (currentSlideIndex > 0) {
+          currentSlideIndex--;
+          const prevSlideEl = slidePages[currentSlideIndex];
+          const prevSteps = getStepsForSlide(prevSlideEl);
+          // Mở sẵn các step ở slide trước khi lùi lại
+          currentStepOnSlide = prevSteps.length;
+          prevSteps.forEach((st) => st.classList.add('revealed'));
+          updateSlideView();
+        }
+      }
+    }
+
+    function goToSlide(index) {
+      if (index >= 0 && index < totalSlides) {
+        currentSlideIndex = index;
+        currentStepOnSlide = 0;
+        updateSlideView();
+      }
+    }
+
+    function revealAllCurrentSlide() {
+      const activeSlide = slidePages[currentSlideIndex];
+      const steps = getStepsForSlide(activeSlide);
+      steps.forEach((st) => {
+        st.classList.add('revealed');
+        st.classList.remove('current-focus');
+      });
+      currentStepOnSlide = steps.length;
+      updateStepBadge(steps.length);
+      playStepSound();
+      showToast('Đã mở toàn bộ nội dung trang!', 'success');
+    }
+
+    function toggleFullScreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        }
+      }
+    }
+
+    // Laser pointer
+    const laserDot = document.getElementById('laser-pointer');
+    const laserBtn = document.getElementById('btn-laser');
+
+    function toggleLaser() {
+      isLaserActive = !isLaserActive;
+      if (isLaserActive) {
+        if (laserDot) laserDot.style.display = 'block';
+        if (laserBtn) {
+          laserBtn.classList.add('bg-red-600', 'text-white');
+        }
+        showToast('Laser Pointer: ĐÃ BẬT (Phím L)', 'info');
+      } else {
+        if (laserDot) laserDot.style.display = 'none';
+        if (laserBtn) {
+          laserBtn.classList.remove('bg-red-600', 'text-white');
+        }
+        showToast('Laser Pointer: ĐÃ TẮT', 'info');
+      }
+    }
+
+    window.addEventListener('mousemove', (e) => {
+      if (isLaserActive && laserDot) {
+        laserDot.style.left = e.clientX + 'px';
+        laserDot.style.top = e.clientY + 'px';
+      }
+    });
+
+    // Toast notification
+    let toastTimeout = null;
+    function showToast(message, type) {
+      const toast = document.getElementById('toast-msg');
+      const toastText = document.getElementById('toast-text');
+      const toastIcon = document.getElementById('toast-icon');
+      if (!toast || !toastText || !toastIcon) return;
+
+      toastText.innerText = message;
+      if (type === 'success') {
+        toastIcon.className = 'fa-solid fa-circle-check text-emerald-400 text-lg';
+      } else if (type === 'error') {
+        toastIcon.className = 'fa-solid fa-circle-xmark text-rose-400 text-lg';
+      } else {
+        toastIcon.className = 'fa-solid fa-circle-info text-teal-400 text-lg';
+      }
+
+      toast.classList.remove('-translate-y-24');
+      toast.classList.add('translate-y-0');
+
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toast.classList.remove('translate-y-0');
+        toast.classList.add('-translate-y-24');
+      }, 2500);
+    }
+
+    // Keyboard navigation
+    window.addEventListener('keydown', (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+      switch (e.code) {
+        case 'Space':
+        case 'Enter':
+        case 'ArrowRight':
+        case 'ArrowDown':
+          e.preventDefault();
+          nextStepOrSlide();
+          break;
+        case 'ArrowLeft':
+        case 'ArrowUp':
+        case 'Backspace':
+          e.preventDefault();
+          prevStepOrSlide();
+          break;
+        case 'KeyA':
+          e.preventDefault();
+          revealAllCurrentSlide();
+          break;
+        case 'KeyM':
+          e.preventDefault();
+          toggleDrawer();
+          break;
+        case 'KeyL':
+          e.preventDefault();
+          toggleLaser();
+          break;
+        case 'KeyF':
+          e.preventDefault();
+          toggleFullScreen();
+          break;
+      }
+    });
+
+    // Touch swipe support
+    let touchStartX = 0;
+    let touchStartY = 0;
+    const stage = document.getElementById('slide-stage');
+    if (stage) {
+      stage.addEventListener('touchstart', (e) => {
+        touchStartX = e.changedTouches[0].screenX;
+        touchStartY = e.changedTouches[0].screenY;
+      }, { passive: true });
+
+      stage.addEventListener('touchend', (e) => {
+        const touchEndX = e.changedTouches[0].screenX;
+        const touchEndY = e.changedTouches[0].screenY;
+        const diffX = touchEndX - touchStartX;
+        const diffY = touchEndY - touchStartY;
+
+        if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 40) {
+          if (diffX < 0) {
+            nextStepOrSlide();
+          } else {
+            prevStepOrSlide();
+          }
+        }
+      }, { passive: true });
+    }
+
+    // Khởi tạo ban đầu
+    window.addEventListener('load', () => {
+      updateSlideView();
+      initDrawer();
+      // Typeset toàn bộ stage lần đầu
+      setTimeout(() => {
+        renderMathContent(document.getElementById('slide-stage'));
+      }, 300);
+    });
+  </script>
 </body>
 </html>`;
 
-
-    const blob = new Blob([htmlTemplate], { type: 'text/html' });
+    const blob = new Blob([htmlTemplate], { type: 'text/html;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;

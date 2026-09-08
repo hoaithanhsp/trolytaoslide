@@ -247,10 +247,12 @@ export function parseApiError(error: unknown, provider: AiProvider = 'gemini'): 
     };
   }
 
+  const errorObj = error as { message?: string } | undefined;
+
   return {
     type: 'UNKNOWN',
     statusCode: status,
-    message: error?.message || 'Lỗi không xác định khi kết nối với AI.',
+    message: errorObj?.message || 'Lỗi không xác định khi kết nối với AI.',
     rawError: error,
   };
 }
@@ -693,27 +695,49 @@ In đậm nhấn mạnh:
 
 HÃY SỬ DỤNG LINH HOẠT các class này để nhấn mạnh khái niệm quan trọng, định nghĩa, công thức!`;
 
-  return `Bạn là một chuyên gia thiết kế slide thuyết trình giáo dục. Hãy tạo slide HTML cho nội dung sau.
+  return `Bạn là một Chuyên gia Thiết kế Bài giảng Điện tử Tương tác & Lập trình Web Sư phạm đỉnh cao theo chương trình GDPT 2018.
+Hãy tạo toàn bộ các thẻ Slide HTML chất lượng cao cho nội dung sau:
 
-${topic ? `CHỦ ĐỀ: ${topic}` : ''}
+${topic ? `CHỦ ĐỀ BÀI HỌC: ${topic}` : ''}
 
-NỘI DUNG TÀI LIỆU:
+NỘI DUNG TÀI LIỆU THAM KHẢO:
 ${content}
 ${outlineInstruction}${ageAppropriateInstruction}${subjectInstruction}${simulationInstruction}${mediaInstruction}${colorEmphasisInstruction}
 
-YÊU CẦU KỸ THUẬT:
+QUY TẮC CẤU TRÚC VÀ BỐ CỤC BỘ SLIDE (THEO CHUẨN SƯ PHẠM):
 1. ${slideCountInstruction}
-2. Mỗi slide phải có class="slide" 
-3. Slide đầu tiên là trang tiêu đề với h1
-4. Các slide tiếp theo có h2 cho tiêu đề phụ
-5. Sử dụng ul/li cho danh sách
-6. Sử dụng div class="box" cho các định nghĩa/công thức quan trọng
-7. Với công thức toán, dùng cú pháp LaTeX trong $$ $$ hoặc $ $
-8. KHÔNG TẠO THÊM BLOCK <style> - template đã có sẵn CSS
-9. KHÔNG sử dụng height: 100vh cho .slide - template sẽ xử lý display
-10. SỬ DỤNG các class màu sắc (.text-primary, .highlight, .keyword...) để nhấn mạnh nội dung
+2. Mỗi slide phải là một thẻ <section class="slide">...</section>.
+3. Slide 1 (Trang bìa):
+   - Tiêu đề bài học lớn nổi bật (h1)
+   - Thông tin phân môn, khối lớp, thời lượng (tiết học)
+   - Huy hiệu "GDPT 2018" hoặc "Năng lực số"
+   - Khung thông tin Giáo viên & Đơn vị công tác
+4. Slide 2 (Mục tiêu bài học):
+   - Trình bày 3 nhóm: 1. Kiến thức trọng tâm, 2. Năng lực số / Năng lực chuyên môn, 3. Phẩm chất & Năng lực chung.
+5. Các Slide Nội dung trọng tâm:
+   - Mỗi slide chỉ từ 4-6 ý/khối nội dung súc tích, tránh nhồi nhét chữ.
+   - Bố cục 2 cột cân đối: Bên trái là Định nghĩa/Quy tắc đóng khung trong <div class="box">, bên phải là Ví dụ đối chiếu, bảng phân tích hoặc bài toán áp dụng.
+6. Slide Trắc nghiệm / Tương tác củng cố (ở cuối trước slide tổng kết):
+   - Chứa câu hỏi trắc nghiệm hoặc bài tập vận dụng nhanh với các phương án A, B, C, D rõ ràng.
+7. Slide Tổng kết & Bản đồ tư duy / Dặn dò:
+   - Hệ thống hóa các kiến thức cốt lõi và nhiệm vụ học tập về nhà.
 
-CHỈ TRẢ VỀ CÁC THẺ <section class="slide">...</section>, KHÔNG CÓ MARKDOWN, GIẢI THÍCH HAY BLOCK <style>. Bắt đầu ngay với <section class="slide">`;
+QUY TẮC ĐẶC BIỆT CHO CÔNG THỨC TOÁN HỌC & KÝ HIỆU KHOA HỌC:
+- MỌI công thức toán, biến số, ký hiệu toán học BẮT BUỘC viết bằng cú pháp LaTeX chuẩn:
+  + Công thức trong dòng (inline math): đặt trong cặp dấu $...$ (Ví dụ: $x \\in \\mathbb{R}$, $P(x): "x > 5"$, $\\forall x$, $\\exists y$, $a \\ne 0$).
+  + Công thức khối nổi bật (display math): đặt trong cặp dấu $$...$$ (Ví dụ: $$\\Delta = b^2 - 4ac$$, $$\\int_a^b f(x)dx$$).
+- Trình bày các bước giải chi tiết, rõ ràng, dễ đọc.
+- Tuyệt đối không viết công thức dạng ký tự thường như "x thuộc R" hay "delta = b^2 - 4ac", phải dùng $x \\in \\mathbb{R}$, $\\Delta = b^2 - 4ac$.
+
+HIỆU ỨNG TRÌNH CHIẾU TỪNG BƯỚC (STEP-BY-STEP REVEAL):
+- Với các bước giải, từng ý trong danh sách (li), hoặc khối phân tích ví dụ cần hiện lần lượt khi giáo viên giảng, hãy thêm class "step-item" (Ví dụ: <li class="step-item">...</li> hoặc <div class="step-item">...).
+
+YÊU CẦU KỸ THUẬT:
+- KHÔNG TẠO THÊM BLOCK <style> - template đã có sẵn toàn bộ CSS cần thiết.
+- KHÔNG sử dụng height: 100vh bên trong .slide.
+- SỬ DỤNG linh hoạt các class màu sắc (.text-primary, .text-success, .text-danger, .highlight, .keyword, .box) để nhấn mạnh nội dung.
+
+CHỈ TRẢ VỀ CÁC THẺ <section class="slide">...</section>, KHÔNG CÓ MARKDOWN HAY GIẢI THÍCH NGOÀI. Bắt đầu ngay với <section class="slide">`;
 };
 
 // ==========================================
