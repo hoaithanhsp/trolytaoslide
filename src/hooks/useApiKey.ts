@@ -35,42 +35,33 @@ export function useApiKey(): UseApiKeyReturn {
   const [selectedAgentModel, setSelectedAgentModelState] = useState<string>(AGENT_PLATFORM_MODELS[0].id);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Khởi tạo và đồng bộ từ localStorage khi mount
   useEffect(() => {
-    // 1. Kiểm tra và chuẩn hóa Provider
     const storedProvider = localStorage.getItem(PROVIDER_STORAGE);
     let initialProvider: AiProvider = 'gemini';
 
     if (storedProvider === 'agent-platform') {
       initialProvider = 'agent-platform';
     } else if (storedProvider === 'vertex') {
-      // Nếu app cũ từng lưu vertex, chuyển về gemini mặc định theo quy tắc Phần III
       initialProvider = 'gemini';
       localStorage.setItem(PROVIDER_STORAGE, 'gemini');
       localStorage.setItem(PROVIDER_SOURCE_STORAGE, 'manual');
-    } else {
-      initialProvider = 'gemini';
     }
     setProviderState(initialProvider);
 
-    // 2. Tải API Keys riêng biệt
     const storedGeminiKey = localStorage.getItem(GEMINI_KEY_STORAGE);
     const storedAgentKey = localStorage.getItem(AGENT_PLATFORM_KEY_STORAGE);
 
     setGeminiKeyState(storedGeminiKey || null);
     setAgentPlatformKeyState(storedAgentKey || null);
 
-    // 3. Chuẩn hóa Model Gemini
     const storedGeminiModel = localStorage.getItem(GEMINI_MODEL_STORAGE);
     if (storedGeminiModel && GEMINI_MODELS.some((m) => m.id === storedGeminiModel)) {
       setSelectedGeminiModelState(storedGeminiModel);
     } else {
-      // Model cũ (hoặc không hợp lệ), đưa về mặc định gemini-3.6-flash
       setSelectedGeminiModelState(GEMINI_MODELS[0].id);
       localStorage.setItem(GEMINI_MODEL_STORAGE, GEMINI_MODELS[0].id);
     }
 
-    // 4. Chuẩn hóa Model Agent Platform
     const storedAgentModel = localStorage.getItem(AGENT_PLATFORM_MODEL_STORAGE);
     if (storedAgentModel && AGENT_PLATFORM_MODELS.some((m) => m.id === storedAgentModel)) {
       setSelectedAgentModelState(storedAgentModel);
@@ -82,14 +73,12 @@ export function useApiKey(): UseApiKeyReturn {
     setIsLoaded(true);
   }, []);
 
-  // Đổi nhà cung cấp
   const setProvider = useCallback((newProvider: AiProvider) => {
     setProviderState(newProvider);
     localStorage.setItem(PROVIDER_STORAGE, newProvider);
     localStorage.setItem(PROVIDER_SOURCE_STORAGE, 'manual');
   }, []);
 
-  // Lưu API Key cho từng nhà cung cấp riêng biệt (không ghi đè lẫn nhau)
   const setApiKey = useCallback((key: string, targetProvider?: AiProvider) => {
     const trimmed = key.trim();
     const target = targetProvider || provider;
@@ -113,7 +102,6 @@ export function useApiKey(): UseApiKeyReturn {
     }
   }, [provider]);
 
-  // Cập nhật model được chọn
   const setSelectedModel = useCallback((model: string) => {
     if (provider === 'agent-platform') {
       if (AGENT_PLATFORM_MODELS.some((m) => m.id === model)) {
@@ -134,7 +122,6 @@ export function useApiKey(): UseApiKeyReturn {
     }
   }, [provider]);
 
-  // Xóa key
   const clearApiKey = useCallback((targetProvider?: AiProvider) => {
     const target = targetProvider || provider;
     if (target === 'agent-platform') {
@@ -146,7 +133,6 @@ export function useApiKey(): UseApiKeyReturn {
     }
   }, [provider]);
 
-  // Key & Model hiện hành theo provider đang chọn
   const activeKey = provider === 'agent-platform' ? agentPlatformKey : geminiKey;
   const activeModel = provider === 'agent-platform' ? selectedAgentModel : selectedGeminiModel;
   const hasValidKey = !!activeKey && validateApiKey(activeKey);
